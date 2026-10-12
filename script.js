@@ -1,4 +1,19 @@
-﻿// Wait for DOM to load
+﻿// Embedded sample data to avoid CORS issues when loading from file://
+const sampleData = {
+  "sampleResumes": {
+    "ecommerce-ops": "E-commerce Operations Specialist\nPattern Technologies India Pvt Ltd, Pune | 2022 - Present\n- Amazon product onboarding, Master ID creation, flat files, ASIN setup, catalog management, and listing compliance for 500+ SKUs monthly\n- Pattern PXM (Amplifi), digital asset management, A+ Content, Brand Stories, and Amazon Storefronts management\n- Listing suppression resolution, Amazon case management, promotions, Subscribe & Save, and Buy Box monitoring\n- Marketplace operations across Amazon, Walmart, Target, eBay, and TikTok Shop\n- Performance marketing: Meta Ads, Google Ads, Google Analytics, Excel, KPI reporting, and competitive analysis\n- Education: B.Tech Computer Science Engineering, MBA in Marketing\n- Previous data science internship: Python, data analysis, machine learning, NLP exposure\n- Automation projects: bulk image asset downloading, link-to-PDF conversion, Amazon Brand Store media extraction",
+    "marketing-analyst": "Marketing Analyst\nVarious Companies | 2020 - 2022\n- Managed Meta Ads and Google Ads campaigns with monthly budgets of $50K+\n- Analyzed campaign performance using Google Analytics and Excel\n- Created weekly performance reports and optimization recommendations\n- Conducted A/B testing on ad creatives and landing pages\n- Tracked KPIs: ROAS, CTR, CPC, conversion rates\n- Collaborated with design and content teams on campaign assets\n- Education: B.Tech Computer Science Engineering, MBA in Marketing",
+    "business-analyst": "Business Analyst\nPattern Technologies India Pvt Ltd | 2021 - 2023\n- Analyzed marketplace performance data and created actionable insights\n- Built dashboards in Excel and Power BI for stakeholders\n- Documented business processes and identified optimization opportunities\n- Collaborated with tech teams on system requirements\n- Conducted competitive analysis and market research\n- Education: B.Tech Computer Science Engineering, MBA in Marketing"
+  },
+  "sampleJobs": {
+    "ecommerce-analyst": "E-commerce Analyst\nCompany: RetailTech Solutions\nLocation: Pune (Hybrid)\nWe are looking for an E-commerce Analyst to join our team and help optimize our clients' online marketplace performance.\n\nRequirements:\n- Bachelor's degree in Business, Marketing, or related field (MBA preferred)\n- 2+ years experience in e-commerce operations or marketplace management\n- Proficiency in Excel for data analysis and reporting\n- Experience with Amazon Seller Central, Walmart Marketplace, or similar platforms\n- Knowledge of performance marketing (Meta Ads, Google Ads)\n- Strong analytical skills with ability to interpret data and make recommendations\n- Experience with SQL or Power BI is a plus\n- Excellent communication and presentation skills\n\nResponsibilities:\n- Analyze sales performance across multiple marketplaces\n- Create weekly/monthly performance reports for clients\n- Identify trends and opportunities for optimization\n- Assist with product listing optimization and compliance\n- Monitor competitor activity and pricing strategies\n- Support clients with advertising campaign analysis and optimization",
+    "marketing-analyst-job": "Marketing Analyst\nCompany: DigitalGrowth Agency\nLocation: Mumbai (Remote)\nJoin our team as a Marketing Analyst to help clients optimize their digital marketing performance.\n\nRequirements:\n- Bachelor's degree in Marketing, Business, or Statistics\n- 1-3 years experience in digital marketing analysis\n- Proficiency in Google Analytics and Excel\n- Experience managing Meta Ads and Google Ads campaigns\n- Strong understanding of marketing funnels and attribution models\n- Ability to create actionable insights from marketing data\n- Experience with A/B testing and conversion rate optimization\n- Excellent communication and reporting skills\n\nResponsibilities:\n- Analyze digital marketing campaign performance\n- Create performance reports and optimization recommendations\n- Conduct A/B tests on ad creatives, landing pages, and audiences\n- Monitor and report on key metrics: ROAS, CTR, CPC, conversion rates\n- Stay updated with latest digital marketing trends and platform changes\n- Collaborate with clients to understand business goals and translate to marketing strategies",
+    "business-analyst-job": "Business Analyst\nCompany: FinTech Innovations\nLocation: Bangalore (On-site)\nWe are seeking a Business Analyst to bridge the gap between business needs and technical solutions.\n\nRequirements:\n- Bachelor's degree in Computer Science, Business, or Engineering (MBA preferred)\n- 2+ years experience as a Business Analyst or in similar role\n- Experience with requirement gathering and documentation\n- Proficiency in Excel and Power BI for data visualization\n- Knowledge of SDLC and Agile methodologies\n- Strong analytical and problem-solving skills\n- Experience with SQL or database querying is a plus\n- Excellent communication and stakeholder management skills\n\nResponsibilities:\n- Gather and document business requirements from stakeholders\n- Create functional specifications and user stories\n- Analyze current processes and identify improvement opportunities\n- Collaborate with development teams on solution design\n- Conduct user acceptance testing and training\n- Monitor and report on project progress and key metrics",
+    "automation-specialist": "Automation Specialist\nCompany: TechFlow Solutions\nLocation: Pune (Hybrid)\nLooking for an Automation Specialist to help streamline business processes through intelligent automation.\n\nRequirements:\n- Bachelor's degree in Computer Science or related field\n- 1-3 years experience with automation or scripting\n- Proficiency in Python for automation tasks\n- Experience with web scraping, data extraction, or API integration\n- Knowledge of Excel automation (VBA or openpyxl)\n- Familiarity with workflow automation tools (Zapier, Power Automate, etc.)\n- Basic understanding of AI/ML concepts for process optimization\n- Strong problem-solving skills and attention to detail\n\nResponsibilities:\n- Develop automation scripts for repetitive business tasks\n- Create data extraction and transformation pipelines\n- Build Excel automation for reporting and analysis\n- Integrate various systems through APIs\n- Monitor and maintain automation solutions\n- Identify opportunities for process improvement through automation\n- Document automation solutions and provide training to users"
+  }
+};
+
+// Wait for DOM to load
 document.addEventListener('DOMContentLoaded', () => {
   // Get all UI elements
   const resumeInput = document.getElementById('resumeInput');
@@ -39,6 +54,7 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
   const discExperience = document.getElementById('discExperience');
   const discoveryClearProfileBtn = document.getElementById('discoveryClearProfileBtn');
   const salaryInfo = document.getElementById('salaryInfo');
+  const jobInputMessage = document.getElementById('jobInputMessage');
 
   // Tab buttons
   const tabButtons = {
@@ -48,6 +64,44 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
     applicationTracker: document.getElementById('tracker-tab'),
     jobDiscovery: document.getElementById('discovery-tab')
   };
+
+  const tabPanes = {
+    resumeAnalysis: document.getElementById('resume-panel'),
+    jobAnalysis: document.getElementById('job-panel'),
+    matchCalculation: document.getElementById('match-panel'),
+    applicationTracker: document.getElementById('tracker-panel'),
+    jobDiscovery: document.getElementById('discovery-panel')
+  };
+
+  // Show a tab pane and mark its button as active — no Bootstrap dependency
+  function switchTab(tabName) {
+    // Hide all panes and deactivate all buttons
+    Object.keys(tabPanes).forEach(key => {
+      tabPanes[key].classList.remove('show', 'active');
+      tabPanes[key].style.display = 'none';
+      tabButtons[key].classList.remove('active');
+      tabButtons[key].setAttribute('aria-selected', 'false');
+    });
+    // Show the requested pane
+    if (tabPanes[tabName]) {
+      tabPanes[tabName].classList.add('show', 'active');
+      tabPanes[tabName].style.display = '';
+      tabPanes[tabName].classList.remove('fade');
+    }
+    if (tabButtons[tabName]) {
+      tabButtons[tabName].classList.add('active');
+      tabButtons[tabName].setAttribute('aria-selected', 'true');
+    }
+  }
+
+  // Attach direct click handlers to every tab button
+  Object.keys(tabButtons).forEach(key => {
+    tabButtons[key].addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      switchTab(key);
+    });
+  });
 
   // Global data storage
   let resumeData = {};
@@ -121,9 +175,10 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       analyzeResumeBtn.disabled = false;
 
       // Hide results panels until analysis is performed
-      document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
-        card.classList.add('d-none');
-      });
+      document.getElementById('resumeResultsCard').classList.add('d-none');
+      document.getElementById('careerFitCard').classList.add('d-none');
+
+      // Reset career fit fields
       document.getElementById('career-fit-score').textContent = '0%';
       document.getElementById('career-fit-feedback').textContent = 'Analyze your resume to see career fit details.';
       document.getElementById('career-fit-details').innerHTML = '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
@@ -190,12 +245,11 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       updateResumeAnalysisUI();
 
       // Show results panels after analysis
-      document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
-        card.classList.remove('d-none');
-      });
+      document.getElementById('resumeResultsCard').classList.remove('d-none');
+      document.getElementById('careerFitCard').classList.remove('d-none');
 
       // Switch to resume analysis tab
-      tabButtons.resumeAnalysis.click();
+      switchTab('resumeAnalysis');
     } else {
       alert('Please enter your resume text');
     }
@@ -205,41 +259,36 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
   resumeSample.addEventListener('change', () => {
     const sampleValue = resumeSample.value;
     if (sampleValue) {
-      // Load sample resume from sample-data.json
-      fetch('./sample-data.json')
-        .then(response => response.json())
-        .then(data => {
-          const sampleResume = data.sampleResumes[sampleValue];
-          if (sampleResume) {
-            resumeInput.value = sampleResume;
-            resumeInput.disabled = false;
+      // Load sample resume from embedded data (avoids CORS issues)
+      const sampleResume = sampleData.sampleResumes[sampleValue];
+      if (sampleResume) {
+        resumeInput.value = sampleResume;
+        resumeInput.disabled = false;
 
-            // Show success message
-            resumeInputMessage.innerHTML = `<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
-              <i class="bi bi-check-circle me-2"></i>Sample resume loaded: <strong>${resumeSample.options[resumeSample.selectedIndex].text}</strong>
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>`;
+        // Show success message
+        resumeInputMessage.innerHTML = `<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+          <i class="bi bi-check-circle me-2"></i>Sample resume loaded: <strong>${resumeSample.options[resumeSample.selectedIndex].text}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
 
-            // Enable the Analyze Resume button when there's text
-            analyzeResumeBtn.disabled = false;
+        // Enable the Analyze Resume button when there's text
+        analyzeResumeBtn.disabled = false;
 
-            // Hide results panels until analysis is performed
-            document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
-              card.classList.add('d-none');
-            });
-            document.getElementById('career-fit-score').textContent = '0%';
-            document.getElementById('career-fit-feedback').textContent = 'Analyze your resume to see career fit details.';
-            document.getElementById('career-fit-details').innerHTML = '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
-          }
-        })
-        .catch(error => {
-          console.error('Error loading sample resume:', error);
-          // Show error message
-          resumeInputMessage.innerHTML = `<div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
-            <i class="bi bi-exclamation-triangle me-2"></i>Error loading sample resume
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>`;
-        });
+        // Hide results panels until analysis is performed
+        document.getElementById('resumeResultsCard').classList.add('d-none');
+        document.getElementById('careerFitCard').classList.add('d-none');
+
+        // Reset career fit fields
+        document.getElementById('career-fit-score').textContent = '0%';
+        document.getElementById('career-fit-feedback').textContent = 'Analyze your resume to see career fit details.';
+        document.getElementById('career-fit-details').innerHTML = '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
+      } else {
+        // Show error message if sample not found
+        resumeInputMessage.innerHTML = `<div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
+          <i class="bi bi-exclamation-triangle me-2"></i>Sample resume not found
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
+      }
     }
   });
 
@@ -249,10 +298,16 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
     if (jobDescText) {
       careerFitData = parseJobDescription(jobDescText);
       updateJobAnalysisUI();
-      // Switch to job analysis tab
-      tabButtons.jobAnalysis.click();
+      document.getElementById('jobResultsCard').classList.remove('d-none');
+      // Show the results card
+      setTimeout(() => {
+        document.getElementById('jobResultsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } else {
-      alert('Please enter a job description');
+      document.getElementById('jobInputMessage').innerHTML = `<div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>Please paste or load a job description first
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>`;
     }
   });
 
@@ -260,40 +315,184 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
   jobSample.addEventListener('change', () => {
     const sampleValue = jobSample.value;
     if (sampleValue) {
-      // Load sample job description from sample-data.json
-      fetch('./sample-data.json')
-        .then(response => response.json())
-        .then(data => {
-          const sampleJob = data.sampleJobs[sampleValue];
-          if (sampleJob) {
-            jobInput.value = sampleJob;
-            // Auto-analyze the job description
-            careerFitData = parseJobDescription(sampleJob);
-            updateJobAnalysisUI();
-            // Switch to job analysis tab
-            tabButtons.jobAnalysis.click();
-          }
-        })
-        .catch(error => {
-          console.error('Error loading sample job description:', error);
-          alert('Error loading sample job description');
-        });
+      // Load sample job description from embedded data (avoids CORS issues)
+      const sampleJob = sampleData.sampleJobs[sampleValue];
+      if (sampleJob) {
+        jobInput.value = sampleJob;
+
+        // Hide previous results — user must click Analyze to see new results
+        document.getElementById('jobResultsCard').classList.add('d-none');
+
+        // Show success message
+        document.getElementById('jobInputMessage').innerHTML = `<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+          <i class="bi bi-check-circle me-2"></i>Sample job description loaded: <strong>${jobSample.options[jobSample.selectedIndex].text}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
+
+        // Switch to job analysis tab
+        switchTab('jobAnalysis');
+      } else {
+        // Show error message if sample not found
+        alert('Sample job description not found');
+      }
+    }
+  });
+
+  // --- Job Description: unified input handlers (one textarea + source pills) ---
+  const jdUploadBtn = document.getElementById('jdUploadBtn');
+  const jdFetchToggleBtn = document.getElementById('jdFetchToggleBtn');
+  const jdSampleToggleBtn = document.getElementById('jdSampleToggleBtn');
+  const jdUrlRow = document.getElementById('jdUrlRow');
+  const jdSampleRow = document.getElementById('jdSampleRow');
+  const jobUrlInput = document.getElementById('jobUrlInput');
+  const fetchJobUrlBtn = document.getElementById('fetchJobUrlBtn');
+  const jdFileUpload = document.getElementById('jdFileUpload');
+  const copyJobBtn = document.getElementById('copyJobBtn');
+
+  // Upload pill → open the file dialog
+  jdUploadBtn.addEventListener('click', () => jdFileUpload.click());
+
+  // Fetch pill → reveal the inline URL row
+  jdFetchToggleBtn.addEventListener('click', () => {
+    jdSampleRow.classList.add('d-none');
+    jdUrlRow.classList.toggle('d-none');
+    if (!jdUrlRow.classList.contains('d-none')) jobUrlInput.focus();
+  });
+
+  // Sample pill → reveal the inline sample row
+  jdSampleToggleBtn.addEventListener('click', () => {
+    jdUrlRow.classList.add('d-none');
+    jdSampleRow.classList.toggle('d-none');
+  });
+
+  // Small helper to render feedback in the unified area
+  function showJdMessage(type, html) {
+    const cls = { success: 'alert-success', danger: 'alert-danger', info: 'alert-info' }[type] || 'alert-info';
+    document.getElementById('jobInputMessage').innerHTML =
+      `<div class="alert ${cls} alert-dismissible fade show mb-0" role="alert">${html}` +
+      `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`;
+  }
+
+  // Fetch JD from URL — tries multiple CORS proxies, fills the shared textarea
+  fetchJobUrlBtn.addEventListener('click', async () => {
+    const url = jobUrlInput.value.trim();
+    if (!url) {
+      showJdMessage('danger', '<i class="bi bi-exclamation-triangle me-2"></i>Please paste a valid job posting URL.');
+      return;
+    }
+
+    document.getElementById('jobInputMessage').innerHTML =
+      '<div class="alert alert-info mb-0"><span class="spinner-border spinner-border-sm me-2"></span>Fetching job description…</div>';
+
+    let extractedText = '';
+    let lastError = null;
+
+    // Step 1: Jina Reader — purpose-built to pull readable text; works on many
+    // sites (including LinkedIn) that block generic CORS proxies.
+    try {
+      const resp = await fetch(`https://r.jina.ai/${url}`);
+      if (resp.ok) {
+        const txt = (await resp.text()).trim();
+        if (txt.length >= 50) {
+          extractedText = txt;
+        } else {
+          lastError = new Error('Reader returned too little text');
+        }
+      } else {
+        lastError = new Error(`Reader returned ${resp.status}`);
+      }
+    } catch (e) {
+      lastError = e;
+    }
+
+    // Step 2: fall back to HTML proxies if the reader failed
+    if (extractedText.length < 50) {
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+      ];
+      for (const proxyUrl of proxies) {
+        try {
+          const response = await fetch(proxyUrl);
+          if (!response.ok) { lastError = new Error(`Server ${response.status}`); continue; }
+          const html = await response.text();
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          doc.querySelectorAll('script, style, nav, footer, header, aside, iframe').forEach(el => el.remove());
+          const main = doc.querySelector('main, article, [class*="job-description"], [class*="description"]') || doc.body;
+          extractedText = main.innerText.replace(/\n{3,}/g, '\n\n').replace(/\s{3,}/g, '  ').trim();
+          if (extractedText.length >= 50) break;
+        } catch (e) { lastError = e; }
+      }
+    }
+
+    if (extractedText.length >= 50) {
+      jobInput.value = extractedText;
+      showJdMessage('success',
+        `<i class="bi bi-check-circle me-2"></i><strong>Job description fetched</strong> — ${extractedText.length} characters loaded into the box above. Click <strong>Analyze</strong> when ready.`);
+    } else {
+      const isLinkedIn = /linkedin\.com/i.test(url);
+      showJdMessage('danger',
+        `<i class="bi bi-exclamation-triangle me-2"></i><strong>Couldn't fetch this page</strong> (${lastError ? lastError.message : 'blocked'}).<br>` +
+        `<small>${isLinkedIn
+          ? 'LinkedIn blocks almost all automated fetches. Easiest fix: open the job in a new tab → <b>Ctrl+A → Ctrl+C</b> → paste into the box above.'
+          : 'This site blocks automated requests. Open the posting → select the text → copy → paste into the box above.'}</small>`);
+    }
+  });
+
+  // JD file upload — change handler
+  jdFileUpload.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    document.getElementById('jobInputMessage').innerHTML =
+      '<div class="alert alert-info mb-0"><span class="spinner-border spinner-border-sm me-2"></span>Reading file…</div>';
+
+    try {
+      let text = '';
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        text = await extractTextFromPDF(file);
+      } else if (file.name.toLowerCase().endsWith('.docx')) {
+        text = await extractTextFromDOCX(file);
+      } else {
+        text = await extractTextFromTXT(file);
+      }
+
+      if (!text.trim()) throw new Error('No text found in file. It may be scanned or image-only.');
+
+      jobInput.value = text;
+      showJdMessage('success',
+        `<i class="bi bi-check-circle me-2"></i><strong>JD loaded:</strong> ${file.name} — ${text.length} characters. Click <strong>Analyze</strong> when ready.`);
+    } catch (err) {
+      showJdMessage('danger', `<i class="bi bi-exclamation-triangle me-2"></i>${err.message}`);
+    }
+  });
+
+  // Copy JD to clipboard
+  copyJobBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(jobInput.value || JSON.stringify(careerFitData, null, 2));
+      copyJobBtn.textContent = 'Copied!';
+      setTimeout(() => copyJobBtn.textContent = 'Copy JD', 2000);
+    } catch (e) {
+      alert('Copy not supported in this browser context.');
     }
   });
 
   // Calculate match button handler
   calculateMatchBtn.addEventListener('click', () => {
     if (Object.keys(resumeData).length === 0) {
-      alert('Please analyze your resume first');
+      switchTab('resumeAnalysis');
+      alert('Analyze your resume first, then come back here to run a match.');
       return;
     }
     if (Object.keys(careerFitData).length === 0) {
-      alert('Please analyze a job description first');
+      switchTab('jobAnalysis');
+      alert('Analyze a job description first, then come back here to run a match.');
       return;
     }
     analyzeCareerFit();
-    // Switch to match calculation tab
-    tabButtons.matchCalculation.click();
+    renderMatchResults();
+    switchTab('matchCalculation');
   });
 
   // Application tracker handlers
@@ -468,155 +667,157 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
     const contactScore = (resumeData.contactInfo.email || resumeData.contactInfo.phone) ? 10 : 0; // 10 points for contact
     const resumeScoreValue = skillScore + expScore + eduScore + contactScore;
 
-    resumeScore.textContent = `${resumeScoreValue.toFixed(0)}%`;
-
+    const score = Math.round(resumeScoreValue);
     let feedback = '';
-    if (resumeScoreValue >= 80) {
-      feedback = 'Strong resume with good skills and experience presentation.';
-    } else if (resumeScoreValue >= 60) {
-      feedback = 'Good resume with room for improvement in specific areas.';
-    } else if (resumeScoreValue >= 40) {
-      feedback = 'Fair resume that could benefit from enhancements.';
+    let scoreColor = '';
+    let scoreLabel = '';
+    if (score >= 80) {
+      feedback = 'Strong resume with well-presented skills and experience. You are competitive in your target roles.';
+      scoreColor = '#C8F54A';
+      scoreLabel = 'Strong';
+    } else if (score >= 60) {
+      feedback = 'Good resume with clear strengths. Focus on a few targeted improvements to stand out more.';
+      scoreColor = '#FFB454';
+      scoreLabel = 'Good';
+    } else if (score >= 40) {
+      feedback = 'Fair resume that could benefit from stronger achievement framing and quantified impact.';
+      scoreColor = '#FF6B6B';
+      scoreLabel = 'Needs Work';
     } else {
-      feedback = 'Resume needs significant improvement to stand out.';
+      feedback = 'Resume needs significant restructuring. Consider highlighting measurable results and relevant skills.';
+      scoreColor = '#FF6B6B';
+      scoreLabel = 'Needs Improvement';
     }
 
-    resumeFeedback.textContent = feedback;
+    const skillChips = skills => skills && skills.length > 0
+      ? `<div class="skill-chips">${skills.map(s => `<span class="chip chip-accent">${s}</span>`).join('')}</div>`
+      : `<span class="text-muted" style="font-size:0.85rem">Not detected</span>`;
 
-    // Clear and rebuild the resume results with organized sections
     resumeResults.innerHTML = `
-      <div class="row mb-4">
-        <div class="col-md-3">
-          <h6>Resume Score</h6>
-          <div id="resume-score" class="display-4 fw-bold text-primary">${resumeScoreValue.toFixed(0)}%</div>
-        </div>
-        <div class="col-md-9">
-          <div id="resume-feedback" class="lead fs-5">${feedback}</div>
-        </div>
-      </div>
-
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Summary</small>
-            <div id="resume-summary">
-              <div class="d-flex justify-content-between">
-                <span>Professional Experience:</span>
-                <span class="fw-medium">${formatExperienceYears(resumeData.totalExperience)}</span>
-              </div>
-              <div class="d-flex justify-content-between">
-                <span>Detected Skills:</span>
-                <span class="fw-medium">${resumeData.skills.length}</span>
-              </div>
-              <div class="d-flex justify-content-between">
-                <span>Education:</span>
-                <span class="fw-medium">${resumeData.education.length} qualifications</span>
-              </div>
-            </div>
+      <!-- Score Hero Section -->
+      <div class="score-hero">
+        <div class="score-hero-ring">
+          <svg viewBox="0 0 120 120" width="140" height="140">
+            <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" class="ring-bg"/>
+            <circle id="resumeScoreRing" cx="60" cy="60" r="52" fill="none" stroke-width="8"
+              stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="326.73"
+              transform="rotate(-90 60 60)" style="transition:stroke-dashoffset 1.5s ease-in-out;filter:drop-shadow(0 0 6px ${scoreColor}44)"/>
+          </svg>
+          <div class="score-hero-value">
+            <span id="resume-score" class="score-hero-number" style="color:${scoreColor}">${score}%</span>
+            <span class="score-hero-label">${scoreLabel}</span>
           </div>
         </div>
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Contact Info</small>
-            <div id="resume-contact">
-              ${resumeData.contactInfo.email ? `<div><i class="bi bi-envelope me-1"></i> ${resumeData.contactInfo.email}</div>` : ''}
-              ${resumeData.contactInfo.phone ? `<div><i class="bi bi-phone me-1"></i> ${resumeData.contactInfo.phone}</div>` : ''}
-              ${!resumeData.contactInfo.email && !resumeData.contactInfo.phone ? '<div class="text-muted">No contact information found</div>' : ''}
+        <div class="score-hero-text">
+          <h4 style="color:var(--text);font-family:'Sora';font-size:1.1rem;font-weight:700;margin-bottom:8px">Resume Health Score</h4>
+          <p id="resume-feedback" style="color:var(--muted);line-height:1.7;font-size:0.95rem;margin:0;max-width:400px">${feedback}</p>
+          <div class="score-stats-row">
+            <div class="score-stat">
+              <span class="score-stat-val">${resumeData.skills.length}</span>
+              <span class="score-stat-lbl">Skills</span>
+            </div>
+            <div class="score-stat">
+              <span class="score-stat-val">${formatExperienceYears(resumeData.totalExperience)}</span>
+              <span class="score-stat-lbl">Experience</span>
+            </div>
+            <div class="score-stat">
+              <span class="score-stat-val">${resumeData.education.length}</span>
+              <span class="score-stat-lbl">Education</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Functional Skills</small>
-            <div id="functional-skills" class="d-flex flex-wrap">
-              ${resumeData.functionalSkills && resumeData.functionalSkills.length > 0
-                ? resumeData.functionalSkills.map(s => `<span class="skill-tag">${s}</span>`).join(' ')
-                : '<span class="text-muted">No functional skills detected</span>'}
-            </div>
+      <!-- Contact Info Strip -->
+      ${resumeData.contactInfo.email || resumeData.contactInfo.phone ? `
+      <div class="contact-strip">
+        ${resumeData.contactInfo.email ? `<span class="contact-item"><span class="contact-icon">✉</span>${resumeData.contactInfo.email}</span>` : ''}
+        ${resumeData.contactInfo.phone ? `<span class="contact-item"><span class="contact-icon">☎</span>${resumeData.contactInfo.phone}</span>` : ''}
+      </div>` : ''}
+
+      <!-- Skill Sections Grid -->
+      <div class="skill-grid">
+        <div class="skill-section">
+          <div class="skill-section-header">
+            <span class="skill-dot" style="background:#8B7BFF"></span>
+            <span>Functional</span>
+          </div>
+          ${skillChips(resumeData.functionalSkills)}
+        </div>
+        <div class="skill-section">
+          <div class="skill-section-header">
+            <span class="skill-dot" style="background:#C8F54A"></span>
+            <span>Technical</span>
+          </div>
+          ${skillChips(resumeData.technicalSkills)}
+        </div>
+        <div class="skill-section">
+          <div class="skill-section-header">
+            <span class="skill-dot" style="background:#FFB454"></span>
+            <span>Marketplace</span>
+          </div>
+          ${skillChips(resumeData.marketplacePlatforms)}
+        </div>
+        <div class="skill-section">
+          <div class="skill-section-header">
+            <span class="skill-dot" style="background:#5ECFE8"></span>
+            <span>Tools</span>
+          </div>
+          ${skillChips(resumeData.tools)}
+        </div>
+        <div class="skill-section">
+          <div class="skill-section-header">
+            <span class="skill-dot" style="background:#FF6B9D"></span>
+            <span>Analytics</span>
+          </div>
+          ${skillChips(resumeData.analytics)}
+        </div>
+        <div class="skill-section">
+          <div class="skill-section-header">
+            <span class="skill-dot" style="background:#A3A9B8"></span>
+            <span>Transferable</span>
+          </div>
+          ${skillChips(resumeData.transferableSkills)}
+        </div>
+      </div>
+
+      <!-- Strengths & Weaknesses -->
+      <div class="insight-grid">
+        <div class="insight-card insight-card-strengths">
+          <div class="insight-card-icon">✓</div>
+          <div>
+            <h6>Strengths</h6>
+            <ul class="insight-list">${generateStrengthsList(resumeData)}</ul>
           </div>
         </div>
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Technical Skills</small>
-            <div id="technical-skills" class="d-flex flex-wrap">
-              ${resumeData.technicalSkills && resumeData.technicalSkills.length > 0
-                ? resumeData.technicalSkills.map(s => `<span class="skill-tag">${s}</span>`).join(' ')
-                : '<span class="text-muted">No technical skills detected</span>'}
-            </div>
+        <div class="insight-card insight-card-weaknesses">
+          <div class="insight-card-icon">!</div>
+          <div>
+            <h6>Areas to Improve</h6>
+            <ul class="insight-list">${generateWeaknessesList(resumeData)}</ul>
           </div>
         </div>
       </div>
 
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Marketplace Platforms</small>
-            <div id="marketplace-platforms" class="d-flex flex-wrap">
-              ${resumeData.marketplacePlatforms && resumeData.marketplacePlatforms.length > 0
-                ? resumeData.marketplacePlatforms.map(s => `<span class="skill-tag">${s}</span>`).join(' ')
-                : '<span class="text-muted">No marketplace platforms detected</span>'}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Tools</small>
-            <div id="tools" class="d-flex flex-wrap">
-              ${resumeData.tools && resumeData.tools.length > 0
-                ? resumeData.tools.map(s => `<span class="skill-tag">${s}</span>`).join(' ')
-                : '<span class="text-muted">No tools detected</span>'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Analytics</small>
-            <div id="analytics" class="d-flex flex-wrap">
-              ${resumeData.analytics && resumeData.analytics.length > 0
-                ? resumeData.analytics.map(s => `<span class="skill-tag">${s}</span>`).join(' ')
-                : '<span class="text-muted">No analytics skills detected</span>'}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="mb-2">
-            <small class="text-muted">Transferable Skills</small>
-            <div id="transferable-skills" class="d-flex flex-wrap">
-              ${resumeData.transferableSkills && resumeData.transferableSkills.length > 0
-                ? resumeData.transferableSkills.map(s => `<span class="skill-tag">${s}</span>`).join(' ')
-                : '<span class="text-muted">No transferable skills detected</span>'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <h6>Strengths</h6>
-        <div id="resume-strengths">
-          ${generateStrengthsList(resumeData)}
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <h6>Areas for Improvement</h6>
-        <div id="resume-weaknesses">
-          ${generateWeaknessesList(resumeData)}
-        </div>
-      </div>
-
-      <div class="mb-3">
-        <h6>Suggestions for Improvement</h6>
-        <div id="resume-suggestions">
-          ${generateSuggestionsList(resumeData)}
+      <!-- Suggestions -->
+      <div class="insight-card insight-card-suggestions mt-3">
+        <div class="insight-card-icon">→</div>
+        <div>
+          <h6>Suggestions</h6>
+          <ul class="insight-list">${generateSuggestionsList(resumeData)}</ul>
         </div>
       </div>
     `;
+
+    // Animate the score ring after DOM render
+    setTimeout(() => {
+      const resumeRing = document.getElementById('resumeScoreRing');
+      if (resumeRing) {
+        const circumference = 326.73;
+        resumeRing.style.stroke = scoreColor;
+        resumeRing.style.strokeDashoffset = circumference - (circumference * score / 100);
+      }
+    }, 50);
 
     // Also update Career Fit experience fields when resume is analyzed
     if (totalExperience && relevantExperience && seniorityLevel) {
@@ -655,53 +856,306 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
     }
   }
 
-  // Update job analysis UI
+  // Update job analysis UI — full premium redesign
   function updateJobAnalysisUI() {
     if (Object.keys(careerFitData).length === 0) {
-      jobResults.innerHTML = '<p class="text-muted">Analyze the job description to see extracted requirements</p>';
+      document.getElementById('jobResultsCard').classList.add('d-none');
       return;
     }
+    document.getElementById('jobResultsCard').classList.remove('d-none');
 
-    // Build HTML for job analysis results
-    let html = `
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <h6>Job Requirements</h6>
-        </div>
-        <div class="col-md-6">
-          <h6>Key Details</h6>
-        </div>
-      </div>
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <div id="job-requirements">
-            ${careerFitData.requirements && careerFitData.requirements.length > 0
-              ? careerFitData.requirements.map(req => `<div class="mb-2"><small>â€¢</small> ${req}</div>`).join('')
-              : '<p class="text-muted">No specific requirements found</p>'}
+    const rawText = careerFitData.rawText || '';
+    const jobTextLower = rawText.toLowerCase();
+
+    // Extract a clean job title with a better heuristic
+    const jobTitle = extractJobTitle(rawText);
+
+    // Job type
+    const isRemote   = /\bremote\b/.test(jobTextLower);
+    const isHybrid   = /\bhybrid\b/.test(jobTextLower);
+    const isOnsite   = /\b(on-site|onsite|in-office|in office)\b/.test(jobTextLower);
+    const jobType    = isRemote ? 'Remote' : isHybrid ? 'Hybrid' : isOnsite ? 'On-site' : '';
+
+    // Location
+    const locationMatch = jobTextLower.match(/\b(pune|bengaluru|mumbai|hyderabad|delhi|gurgaon|noida|chennai|kolkata|remote|india|remote work|work from home)\b/);
+    const location = locationMatch ? locationMatch[0].replace('remote work', 'Remote').replace('work from home', 'WFM')
+      .split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') : '';
+
+    // Salary
+    const salaryMatch = jobTextLower.match(/(₹|rs\.?\s*)?(\d+(?:\.\d+)?)\s*(lakh|lakhs|l\b|k\b|cr\b|inr|\$|eur)\s*\/?\s*(year|yearly|annum|lpa)?/i)
+      || jobTextLower.match(/salary[:\s]*([^.\n]{5,60})/i);
+    const salary = salaryMatch ? salaryMatch[0].trim().substring(0, 50) : '';
+
+    // Experience
+    const expReq = careerFitData.experienceRequired && careerFitData.experienceRequired !== 'Not specified'
+      ? careerFitData.experienceRequired : '';
+
+    // Education
+    const eduReq = careerFitData.educationRequired && careerFitData.educationRequired !== 'Not specified'
+      ? careerFitData.educationRequired : '';
+
+    // Key skills — deduplicated
+    const keySkills = [...new Set((careerFitData.keySkills || []).map(s => s.trim()).filter(Boolean))];
+    const mustHaves = extractMustHaves(rawText);
+
+    // JD Completeness Score
+    let completeness = 0;
+    if (expReq)  completeness += 20;
+    if (eduReq)  completeness += 20;
+    if (keySkills.length > 3) completeness += 20;
+    if (careerFitData.requirements?.length > 2) completeness += 20;
+    if (jobType) completeness += 10;
+    if (salary)  completeness += 10;
+
+    // Skill Gap Analysis (only if resume is analyzed)
+    let skillGapHtml = '';
+    if (Object.keys(resumeData).length > 0 && keySkills.length > 0) {
+      const resumeSkillSet = new Set((resumeData.skills || []).map(s => s.toLowerCase().trim()));
+      const matched = keySkills.filter(s => resumeSkillSet.has(s.toLowerCase().trim()));
+      const missing = keySkills.filter(s => !resumeSkillSet.has(s.toLowerCase().trim()));
+      const matchPct = Math.round((matched.length / keySkills.length) * 100);
+
+      skillGapHtml = `
+        <div class="jd-skill-gap">
+          <h6>Skill Gap Analysis <span class="text-muted" style="font-weight:400;font-size:0.75rem">vs. your resume</span></h6>
+          <div class="jd-skill-gap-stats">
+            <div class="jd-skill-stat matched">
+              <span class="stat-val">${matched.length}</span>
+              <span class="stat-lbl">Matched</span>
+            </div>
+            <div class="jd-skill-stat missing">
+              <span class="stat-val">${missing.length}</span>
+              <span class="stat-lbl">Missing</span>
+            </div>
+            <div class="jd-skill-stat total">
+              <span class="stat-val">${keySkills.length}</span>
+              <span class="stat-lbl">Total</span>
+            </div>
+          </div>
+          <div class="jd-skill-gap-bar">
+            <div class="jd-skill-gap-fill" style="width:${matchPct}%"></div>
+          </div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-bottom:10px">${matchPct}% skill overlap with your resume</div>
+          ${missing.length > 0 ? `<div class="jd-skill-chips-label">JD skills you may be missing:</div>
+          <div class="skill-chips">${missing.slice(0, 8).map(s =>
+            `<span class="chip" style="background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.3);color:#FF9999">${s}</span>`
+          ).join('')}</div>` : '<div style="color:var(--accent);font-size:0.85rem">✓ You have all detected JD skills in your resume!</div>'}
+        </div>`;
+    }
+
+    // Requirements & responsibilities lists
+    const reqList = careerFitData.requirements?.length > 0
+      ? `<ul class="jd-req-list">${careerFitData.requirements.slice(0, 6).map(r =>
+          `<li>${r.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`).join('')}</ul>`
+      : '<p class="text-muted" style="font-size:0.88rem">No structured requirements detected in this JD.</p>';
+
+    const respMatch = rawText.match(/(?:Responsibilities|What you.ll do|What you will do)[:\s]*\n?([\s\S]{0,1000})/i);
+    const respLines = respMatch
+      ? respMatch[1].split('\n').map(s => s.trim()).filter(s => s.length > 10 && !/^(about|requirements|benefits)/i.test(s)).slice(0, 5)
+      : [];
+    const respList = respLines.length > 0
+      ? `<ul class="jd-req-list">${respLines.map(r =>
+          `<li>${r.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/^[\-\*•●\d]+\s*/,'')}</li>`).join('')}</ul>`
+      : '<p class="text-muted" style="font-size:0.88rem">No responsibilities section detected.</p>';
+
+    // Completeness ring
+    const circumference = 326.73;
+    const ringOffset = circumference - (circumference * completeness / 100);
+    const compColor = completeness >= 80 ? '#C8F54A' : completeness >= 50 ? '#FFB454' : '#FF6B6B';
+
+    jobResults.innerHTML = `
+      <div class="p-4">
+
+        <!-- Top: Hero + Completeness Ring -->
+        <div class="jd-hero-v2">
+          <div class="jd-hero-v2-ring">
+            <svg viewBox="0 0 120 120" width="110" height="110">
+              <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" class="ring-bg"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke-width="8"
+                stroke-linecap="round" stroke-dasharray="${circumference}"
+                stroke-dashoffset="${ringOffset}" stroke="${compColor}"
+                transform="rotate(-90 60 60)"
+                style="filter:drop-shadow(0 0 4px ${compColor}44)"/>
+            </svg>
+            <div class="jd-hero-v2-ring-val">
+              <span style="color:${compColor};font-family:'Sora';font-size:1.5rem;font-weight:700">${completeness}%</span>
+              <span class="text-muted" style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.05em;display:block">JD Quality</span>
+            </div>
+          </div>
+          <div class="jd-hero-v2-content">
+            <h4 style="font-family:'Sora';font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:4px">
+              ${jobTitle}
+            </h4>
+            <div style="color:var(--muted);font-size:0.82rem;margin-bottom:10px">
+              ${expReq ? `⏱ ${expReq}` : ''} ${eduReq ? `🎓 ${eduReq}` : ''} ${jobType ? `📍 ${jobType}` : ''} ${location ? `🌐 ${location}` : ''} ${salary ? `💰 ${salary}` : ''}
+            </div>
+            <div class="jd-hero-v2-chips">
+              <span class="jd-chip">⭐ ${keySkills.length} skills detected</span>
+              <span class="jd-chip">📋 ${careerFitData.requirements?.length || 0} requirements</span>
+              ${skillGapHtml ? `<span class="jd-chip" style="background:rgba(200,245,74,0.1);border-color:rgba(200,245,74,0.3);color:var(--accent)">🔗 Skill gap shown</span>` : ''}
+            </div>
           </div>
         </div>
-        <div class="col-md-6">
-          <div id="job-details">
-            <div class="mb-2">
-              <small>Experience Required:</small>
-              <span>${careerFitData.experienceRequired || 'Not specified'}</span>
-            </div>
-            <div class="mb-2">
-              <small>Education Required:</small>
-              <span>${careerFitData.educationRequired || 'Not specified'}</span>
-            </div>
-            <div class="mb-2">
-              <small>Key Skills:</small>
-              <span>${careerFitData.keySkills && careerFitData.keySkills.length > 0
-                ? careerFitData.keySkills.join(', ')
-                : 'Not specified'}</span>
-            </div>
+
+        <!-- Skill Gap Section (when resume analyzed) -->
+        ${skillGapHtml ? skillGapHtml : ''}
+
+        <!-- Must-Have Skills (highlighted) -->
+        ${mustHaves.length > 0 ? `
+        <div class="jd-musthave-card">
+          <div class="jd-musthave-header">
+            <h6>Must-Have Skills</h6>
+            <span class="jd-musthave-badge">Priority</span>
+          </div>
+          <div class="skill-chips">
+            ${mustHaves.map(s => `<span class="chip" style="background:rgba(255,180,84,0.12);border:1px solid rgba(255,180,84,0.3);color:var(--warn);font-size:0.82rem;font-weight:600">✦ ${s}</span>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <!-- All Detected Skills -->
+        ${keySkills.length > 0 ? `
+        <div class="jd-section-card">
+          <h6>All Detected Skills</h6>
+          <div class="skill-chips">
+            ${keySkills.slice(0, 14).map(s => `<span class="chip" style="background:rgba(139,123,255,0.12);border:1px solid rgba(139,123,255,0.3);color:var(--ai-text);font-size:0.8rem">${s}</span>`).join('')}
+          </div>
+        </div>` : ''}
+
+        <!-- Requirements + Responsibilities -->
+        <div class="jd-requirements-grid">
+          <div class="jd-req-card">
+            <h6>Key Requirements</h6>
+            ${reqList}
+          </div>
+          <div class="jd-req-card">
+            <h6>Core Responsibilities</h6>
+            ${respList}
           </div>
         </div>
+
+        <!-- Quick Actions -->
+        <div class="jd-actions-row">
+          <button class="jd-action-btn" id="copyJDTextBtn">
+            <span>📋</span> Copy JD
+          </button>
+          <button class="jd-action-btn" id="matchAnalysisBtn">
+            <span>🎯</span> Match Analysis
+          </button>
+        </div>
+
       </div>
     `;
 
-    jobResults.innerHTML = html;
+    // Wire up the new action buttons
+    document.getElementById('copyJDTextBtn')?.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(rawText);
+      document.getElementById('copyJDTextBtn').innerHTML = '<span>✓</span> Copied!';
+      setTimeout(() => document.getElementById('copyJDTextBtn').innerHTML = '<span>📋</span> Copy JD', 2000);
+    });
+
+    document.getElementById('matchAnalysisBtn')?.addEventListener('click', () => {
+      switchTab('matchCalculation');
+      // Trigger match calculation if both resume and JD are analyzed
+      if (Object.keys(resumeData).length > 0 && Object.keys(careerFitData).length > 0) {
+        analyzeCareerFit();
+      }
+    });
+  }
+
+  // Render the Match Analysis panel — helpful empty state OR a real breakdown
+  function renderMatchResults() {
+    if (!matchResults) return;
+
+    const hasResume = Object.keys(resumeData).length > 0;
+    const hasJob = Object.keys(careerFitData).length > 0;
+
+    if (!hasResume || !hasJob) {
+      const missing = !hasResume ? 'your resume' : 'a job description';
+      matchResults.innerHTML = `
+        <div class="match-empty">
+          <div class="match-empty-icon">🎯</div>
+          <h5>Let's compute your match</h5>
+          <p>To see how well your resume fits a role, make sure you've analyzed ${missing}, then run the match.</p>
+          <div class="match-empty-actions">
+            ${!hasResume ? `<button class="btn btn-outline-primary" id="matchGoResume">Go to Resume Analysis</button>` : ''}
+            ${!hasJob ? `<button class="btn btn-outline-primary" id="matchGoJob">Go to Job Description</button>` : ''}
+            <button class="btn btn-primary" id="matchCalcBtn2">Run Match Analysis</button>
+          </div>
+        </div>`;
+      document.getElementById('matchGoResume')?.addEventListener('click', () => switchTab('resumeAnalysis'));
+      document.getElementById('matchGoJob')?.addEventListener('click', () => switchTab('jobAnalysis'));
+      document.getElementById('matchCalcBtn2')?.addEventListener('click', () => {
+        if (hasResume && hasJob) { analyzeCareerFit(); renderMatchResults(); }
+        else { calculateMatchBtn.click(); }
+      });
+      return;
+    }
+
+    // Both analyzed — compute the match breakdown
+    const skillsMatch = calculateSkillsMatch(resumeData.skills, careerFitData.keySkills || []);
+    const expMatch = calculateExperienceMatch(resumeData.totalExperience, careerFitData.experienceRequired);
+    const eduMatch = calculateEducationMatch(resumeData.education, careerFitData.educationRequired);
+    const overall = Math.round((skillsMatch * 0.4 + expMatch * 0.4 + eduMatch * 0.2) * 100);
+
+    const overallColor = overall >= 80 ? '#C8F54A' : overall >= 60 ? '#FFB454' : '#FF6B6B';
+    const verdict = overall >= 80 ? 'Strong match' : overall >= 60 ? 'Good match' : overall >= 40 ? 'Fair match' : 'Weak match';
+    const ringOffset = 326.73 - (326.73 * overall / 100);
+
+    // Identify the top gap skills
+    const resumeSet = new Set((resumeData.skills || []).map(s => s.toLowerCase().trim()));
+    const gapSkills = (careerFitData.keySkills || [])
+      .filter(s => !resumeSet.has(s.toLowerCase().trim()))
+      .slice(0, 5);
+
+    matchResults.innerHTML = `
+      <div class="match-hero">
+        <div class="match-hero-ring">
+          <svg viewBox="0 0 120 120" width="130" height="130">
+            <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" class="ring-bg"/>
+            <circle cx="60" cy="60" r="52" fill="none" stroke-width="8"
+              stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="${ringOffset}"
+              stroke="${overallColor}" transform="rotate(-90 60 60)"
+              style="filter:drop-shadow(0 0 6px ${overallColor}55)"/>
+          </svg>
+          <div class="match-hero-ring-val">
+            <span style="color:${overallColor};font-family:'Sora';font-size:1.9rem;font-weight:700">${overall}%</span>
+            <span class="text-muted" style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.05em;display:block">${verdict}</span>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <h5 style="font-family:'Sora';color:var(--text);font-weight:700;margin-bottom:6px">Overall Match Score</h5>
+          <p style="color:var(--muted);font-size:0.9rem;line-height:1.65;margin:0">
+            Weighted blend of skills (40%), experience (40%) and education (20%) between your resume and this job description.
+          </p>
+        </div>
+      </div>
+
+      <div class="match-bars">
+        <div class="match-bar-row">
+          <span class="match-bar-label">Skills</span>
+          <div class="match-bar-track"><div class="match-bar-fill" style="width:${skillsMatch*100}%;background:var(--accent)"></div></div>
+          <span class="match-bar-val">${Math.round(skillsMatch*100)}%</span>
+        </div>
+        <div class="match-bar-row">
+          <span class="match-bar-label">Experience</span>
+          <div class="match-bar-track"><div class="match-bar-fill" style="width:${expMatch*100}%;background:var(--ai)"></div></div>
+          <span class="match-bar-val">${Math.round(expMatch*100)}%</span>
+        </div>
+        <div class="match-bar-row">
+          <span class="match-bar-label">Education</span>
+          <div class="match-bar-track"><div class="match-bar-fill" style="width:${eduMatch*100}%;background:var(--warn)"></div></div>
+          <span class="match-bar-val">${Math.round(eduMatch*100)}%</span>
+        </div>
+      </div>
+
+      ${gapSkills.length > 0 ? `
+      <div class="match-gap-card">
+        <h6>Skills this JD wants that aren't in your resume</h6>
+        <div class="skill-chips">
+          ${gapSkills.map(s => `<span class="chip" style="background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);color:#FF9999;font-size:0.8rem">${s}</span>`).join('')}
+        </div>
+      </div>` : '<div class="match-gap-card"><h6>Skill coverage</h6><p style="color:var(--accent);font-size:0.9rem;margin:0">✓ No detected skill gaps against this job description.</p></div>'}
+    `;
   }
 
   // Assess resume against the selected target role.
@@ -813,6 +1267,15 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
 
     if (careerFitScore) careerFitScore.textContent = `${score}%`;
 
+    // Animate the score ring
+    const ring = document.getElementById('careerFitRing');
+    if (ring) {
+      const circumference = 326.73;
+      ring.style.strokeDashoffset = circumference - (circumference * score / 100);
+      // Set ring color based on score
+      ring.style.stroke = score >= 80 ? '#C8F54A' : score >= 60 ? '#FFB454' : '#FF6B6B';
+    }
+
     if (careerFitFeedback) {
       careerFitFeedback.textContent =
         `Estimated fit for ${role.name}, based on the skills and experience detected in your resume.`;
@@ -840,32 +1303,25 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
 
     if (careerFitDetails) {
       careerFitDetails.innerHTML = `
-        <h6 class="mb-3">Role assessment: ${role.name}</h6>
-        <div class="mb-3">
-          <div class="d-flex justify-content-between">
-            <span>Skills match</span>
-            <strong>${Math.round(skillsMatch * 100)}%</strong>
+        <div class="match-result-card">
+          <h5>Role Assessment: ${role.name}</h5>
+          <div class="mb-4">
+            <div class="match-label-row"><span>Skills Match</span><strong>${Math.round(skillsMatch * 100)}%</strong></div>
+            <div class="progress"><div class="progress-bar bg-success" style="width:${skillsMatch * 100}%"></div></div>
           </div>
-          <div class="progress"><div class="progress-bar bg-success" style="width:${skillsMatch * 100}%"></div></div>
-        </div>
-        <div class="mb-3">
-          <div class="d-flex justify-content-between">
-            <span>Experience match</span>
-            <strong>${Math.round(experienceMatch * 100)}%</strong>
+          <div class="mb-4">
+            <div class="match-label-row"><span>Experience Match</span><strong>${Math.round(experienceMatch * 100)}%</strong></div>
+            <div class="progress"><div class="progress-bar bg-info" style="width:${experienceMatch * 100}%"></div></div>
           </div>
-          <div class="progress"><div class="progress-bar bg-info" style="width:${experienceMatch * 100}%"></div></div>
-        </div>
-        <div class="mb-3">
-          <div class="d-flex justify-content-between">
-            <span>Education match</span>
-            <strong>${Math.round(educationMatch * 100)}%</strong>
+          <div class="mb-4">
+            <div class="match-label-row"><span>Education Match</span><strong>${Math.round(educationMatch * 100)}%</strong></div>
+            <div class="progress"><div class="progress-bar bg-warning" style="width:${educationMatch * 100}%"></div></div>
           </div>
-          <div class="progress"><div class="progress-bar bg-warning" style="width:${educationMatch * 100}%"></div></div>
+          <p class="text-muted small mb-0">Preliminary estimate — not a hiring prediction. Skills the parser misses may affect the score.</p>
         </div>
-        <p class="text-muted small">This is a preliminary estimate, not a hiring prediction. Skills that the resume parser misses may lower the score.</p>
-        ${generateCareerFitRecommendations(
-          resumeData, role, skillsMatch, experienceMatch, educationMatch
-        )}
+        <div class="mt-4">
+          ${generateCareerFitRecommendations(resumeData, role, skillsMatch, experienceMatch, educationMatch)}
+        </div>
       `;
     }
   }
@@ -889,8 +1345,17 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
     // Weighted average (skills: 40%, experience: 40%, education: 20%)
     const matchScore = (skillsMatch * 0.4) + (experienceMatch * 0.4) + (educationMatch * 0.2);
 
+    const scorePct = Math.round(matchScore * 100);
     // Update career fit score
-    careerFitScore.textContent = `${Math.round(matchScore)}%`;
+    careerFitScore.textContent = `${scorePct}%`;
+
+    // Animate the score ring
+    const ring = document.getElementById('careerFitRing');
+    if (ring) {
+      const circumference = 326.73;
+      ring.style.strokeDashoffset = circumference - (circumference * scorePct / 100);
+      ring.style.stroke = scorePct >= 80 ? '#C8F54A' : scorePct >= 60 ? '#FFB454' : '#FF6B6B';
+    }
 
     // Update career fit feedback
     let feedback = '';
@@ -922,39 +1387,32 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
     // Generate detailed breakdown
     if (careerFitDetails) {
       careerFitDetails.innerHTML = `
-        <div class="row mb-4">
-          <div class="col-md-6">
-            <h6>Skills Match</h6>
-            <div class="progress">
-              <div class="progress-bar bg-success" style="width: ${skillsMatch * 100}%"></div>
-            </div>
-            <small class="text-muted">${Math.round(skillsMatch * 100)}% skills match</small>
+        <div class="match-result-card">
+          <h5>Match Breakdown</h5>
+          <div class="mb-4">
+            <div class="match-label-row"><span>Skills</span><strong>${Math.round(skillsMatch * 100)}%</strong></div>
+            <div class="progress"><div class="progress-bar bg-success" style="width:${skillsMatch * 100}%"></div></div>
           </div>
-          <div class="col-md-6">
-            <h6>Experience Match</h6>
-            <div class="progress">
-              <div class="progress-bar bg-info" style="width: ${experienceMatch * 100}%"></div>
-            </div>
-            <small class="text-muted">${Math.round(experienceMatch * 100)}% experience match</small>
+          <div class="mb-4">
+            <div class="match-label-row"><span>Experience</span><strong>${Math.round(experienceMatch * 100)}%</strong></div>
+            <div class="progress"><div class="progress-bar bg-info" style="width:${experienceMatch * 100}%"></div></div>
           </div>
-          <div class="col-md-6">
-            <h6>Education Match</h6>
-            <div class="progress">
-              <div class="progress-bar bg-warning" style="width: ${educationMatch * 100}%"></div>
-            </div>
-            <small class="text-muted">${Math.round(educationMatch * 100)}% education match</small>
+          <div class="mb-4">
+            <div class="match-label-row"><span>Education</span><strong>${Math.round(educationMatch * 100)}%</strong></div>
+            <div class="progress"><div class="progress-bar bg-warning" style="width:${educationMatch * 100}%"></div></div>
           </div>
-          <div class="col-md-6">
-            <h6>Recommendations</h6>
-            <div id="career-fit-recommendations">
-              ${generateCareerFitRecommendations(resumeData, careerFitData, skillsMatch, experienceMatch, educationMatch)}
-            </div>
+          <div class="mt-4">
+            <h6 class="text-muted mb-2" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em">Recommendations</h6>
+            ${generateCareerFitRecommendations(resumeData, careerFitData, skillsMatch, experienceMatch, educationMatch)}
           </div>
         </div>
-      </div>
-    `;
+      `;
+    }
+
+    // Keep the dedicated Match Analysis panel in sync
+    renderMatchResults();
   }
-}
+
   // Calculate skills match percentage
   function calculateSkillsMatch(resumeSkills, jobSkills) {
     if (!jobSkills || jobSkills.length === 0) return 1.0; // If no skills specified, assume full match
@@ -1211,19 +1669,21 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
   // Initialize the application
   function init() {
+    // Set initial tab state — show Resume Analysis, hide all others
+    switchTab('resumeAnalysis');
+
     // Load resume profile on startup
     loadResumeProfileAndUpdateUI();
 
     // Render applications list
     renderApplicationsList();
 
-    // Hide results panels initially
-    document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
-      card.classList.add('d-none');
-    });
+    // Seed the Match Analysis panel with a helpful empty state
+    renderMatchResults();
+
+    // Career fit placeholders (cards already hidden via d-none in HTML)
     document.getElementById('career-fit-score').textContent = '0%';
     document.getElementById('career-fit-feedback').textContent = 'Analyze your resume to see career fit details.';
-    document.getElementById('career-fit-details').innerHTML = '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
 
     // Set initial discovery mode switch label
     if (discoveryModeSwitch.checked) {
@@ -2047,42 +2507,68 @@ educationFallbacks.forEach(item => {
   }
 
   function extractJobRequirements(text) {
+    const lines = text.split('\n');
     const requirements = [];
 
-    // Look for requirement sections
-    const reqSections = [
-      /requirements?:?\s*([^#\n]+(?:\n[^#\n]+)*)/i,
-      /qualifications?:?\s*([^#\n]+(?:\n[^#\n]+)*)/i,
-      /what you.ll do:?\s*([^#\n]+(?:\n[^#\n]+)*)/i,
-      /responsibilities?:?\s*([^#\n]+(?:\n[^#\n]+)*)/i
+    // Pass 1: find structured "Requirements" / "Qualifications" / "Must Haves" section
+    const headingPatterns = [
+      /^(requirements|qualifications|must[-\s]?haves|minimum[-\s]?requirements|you must have)\s*[:\-—]?\s*$/i,
+    ];
+    const endPatterns = [
+      /^(responsibilities|what you.ll do|about the (company|team|role)|about us|benefits|perks|equal opportunity|salary|what we offer)\s*[:\-—]?\s*$/i,
     ];
 
-    reqSections.forEach(sectionRegex => {
-      const match = text.match(sectionRegex);
-      if (match && match[1]) {
-        const sectionText = match[1].trim();
-        // Split by lines or bullet points
-        const lines = sectionText.split(/[\nâ€¢\-]/);
-        lines.forEach(line => {
-          const cleaned = line.trim();
-          if (cleaned.length > 10 && cleaned.length < 200) {
+    let inReqSection = false;
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (headingPatterns.some(p => p.test(line))) {
+        inReqSection = true;
+        continue;
+      }
+      if (endPatterns.some(p => p.test(line)) && inReqSection) {
+        inReqSection = false;
+        continue;
+      }
+      if (inReqSection) {
+        // Strip bullet markers: -, *, •, ●, o, numbers
+        const cleaned = line
+          .replace(/^[\s\-\*•●◦o]\s*[\d.]*\s*/i, '')
+          .trim();
+        if (cleaned.length >= 10 && cleaned.length <= 150) {
+          requirements.push(cleaned);
+        }
+      }
+    }
+
+    // Pass 2 (fallback): collect all meaningful bullet lines anywhere in the text
+    if (requirements.length === 0) {
+      lines.forEach(rawLine => {
+        const line = rawLine.trim();
+        const isBullet = /^[\-\*•●◦o]\s*\d*[\.)\s]*/i.test(line) || /^\d+[.)\s]+\S/.test(line);
+        if (isBullet) {
+          const cleaned = line
+            .replace(/^[\s\-\*•●◦o]\s*[\d.]*\s*/i, '')
+            .trim();
+          if (cleaned.length >= 10 && cleaned.length <= 150) {
             requirements.push(cleaned);
           }
-        });
-      }
-    });
+        }
+      });
+    }
 
-    // Also look for bullet points or numbered lists throughout the text
-    const bulletMatches = text.match(/[\n\r][\s]*[â€¢\-\*]\s*[^\n\r]+/g) || [];
-    bulletMatches.forEach(match => {
-      const cleaned = match.trim().replace(/^[\s]*[â€¢\-\*]\s*/, '');
-      if (cleaned.length > 10 && cleaned.length < 200) {
-        requirements.push(cleaned);
-      }
-    });
+    // Pass 3 (fallback): pull requirement-like sentences from flowing text
+    if (requirements.length === 0) {
+      const cue = /\b(experience|proficien|knowledge|skill|abilit|ability|familiar|capab|expert|minimum|at least|required|must|understanding|working with|hands-on|strong)\b/i;
+      const sentences = text
+        .replace(/[•●\-\*o]|\n+/g, ' ')
+        .split(/[.;]\s+/)
+        .map(s => s.trim())
+        .filter(s => s.length >= 15 && s.length <= 160 && cue.test(s));
+      requirements.push(...sentences);
+    }
 
-    // Remove duplicates and limit
-    return [...new Set(requirements)].slice(0, 10);
+    // Deduplicate and limit
+    return [...new Set(requirements)].slice(0, 8);
   }
 
   function extractExperienceRequired(text) {
@@ -2135,6 +2621,47 @@ educationFallbacks.forEach(item => {
     const skills = extractSkills(text);
     // Flatten and return all skills
     return Object.values(skills).flat();
+  }
+
+  // Heuristic job-title extraction (title is often not the very first line)
+  function extractJobTitle(text) {
+    if (!text) return 'Job Description';
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+    // 1. Explicit label: "Position:", "Role:", "Job Title:", "We are hiring a X"
+    const labeled = lines.find(l => /^(position|role|job\s*title|title)\s*[:\-—]\s*\S/i.test(l));
+    if (labeled) return labeled.replace(/^(position|role|job\s*title|title)\s*[:\-—]\s*/i, '').trim().substring(0, 50) || 'Job Description';
+
+    const hiring = text.match(/(?:we\s*are\s*(?:hiring|looking)\s+for|hiring\s+a|role\s*[:\-]\s*)\s*([A-Z][A-Za-z0-9&\- ]{3,40})/i);
+    if (hiring) return hiring[1].trim().substring(0, 50);
+
+    // 2. First short line that looks like a title (capitalized, job-like keyword, no punctuation junk)
+    const titleKeywords = /analyst|specialist|manager|engineer|consultant|coordinator|associate|officer|director|lead|architect|scientist|developer|designer|executive|representative|admin/;
+    for (const l of lines.slice(0, 6)) {
+      if (l.length >= 4 && l.length <= 45 && !/[.,;:!?\(\)\[\]]/.test(l) &&
+          titleKeywords.test(l.toLowerCase()) && l === l.charAt(0).toUpperCase() + l.slice(1)) {
+        return l;
+      }
+    }
+
+    // 3. Fallback: first non-URL, non-bullet line
+    const fallback = lines.find(l => !/http|www\.|linkedin|indeed|naukri|^\d+\b|^[•●\-\*]\s/i.test(l) && l.length >= 4);
+    return (fallback || 'Job Description').substring(0, 50);
+  }
+
+  // Must-have skills: skills explicitly mentioned in requirements context
+  function extractMustHaves(text) {
+    if (!text) return [];
+    const lower = text.toLowerCase();
+    const skills = extractJobKeySkills(text);
+    // A skill counts as "must-have" if it appears near a requirement cue
+    const mustHave = skills.filter(s => {
+      const idx = lower.indexOf(s.toLowerCase());
+      if (idx === -1) return false;
+      const window = lower.substring(Math.max(0, idx - 40), idx + s.length + 40);
+      return /required|must|proficien|experi|knowledge|skill|ability|familiar|capable|expert|minimum|at least/i.test(window);
+    });
+    return [...new Set(mustHave)].slice(0, 6);
   }
 
   // =============================================
@@ -2224,7 +2751,7 @@ educationFallbacks.forEach(item => {
       strengths.push('Review your resume to identify your key strengths.');
     }
 
-    return `<ul class="mb-0">${strengths.map(item => `<li>${item}</li>`).join('')}</ul>`;
+    return strengths.map(item => `<li>${item}</li>`).join('');
   }
 
   function generateWeaknessesList(resumeData) {
@@ -2244,7 +2771,7 @@ educationFallbacks.forEach(item => {
       weaknesses.push('Compare your resume with a target job description to identify specific skill gaps.');
     }
 
-    return `<ul class="mb-0">${weaknesses.map(item => `<li>${item}</li>`).join('')}</ul>`;
+    return weaknesses.map(item => `<li>${item}</li>`).join('');
   }
 
   function generateSuggestionsList(resumeData) {
@@ -2261,7 +2788,7 @@ educationFallbacks.forEach(item => {
       suggestions.push('Add relevant tools and software to your skills section.');
     }
 
-    return `<ul class="mb-0">${suggestions.map(item => `<li>${item}</li>`).join('')}</ul>`;
+    return suggestions.map(item => `<li>${item}</li>`).join('');
   }
 
 });

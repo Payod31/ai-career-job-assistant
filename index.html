@@ -23,20 +23,20 @@
         </header>
 
         <!-- Main Tabs -->
-        <div class="nav-tabs">
-            <button class="nav-link active" id="resume-tab" data-bs-toggle="tab" data-bs-target="#resume-panel" type="button" role="tab" aria-controls="resume-panel" aria-selected="true">
+        <div class="nav-tabs" role="tablist">
+            <button class="nav-link active" id="resume-tab" type="button" role="tab" aria-controls="resume-panel" aria-selected="true">
                 Resume Analysis
             </button>
-            <button class="nav-link" id="job-tab" data-bs-toggle="tab" data-bs-target="#job-panel" type="button" role="tab" aria-controls="job-panel" aria-selected="false">
+            <button class="nav-link" id="job-tab" type="button" role="tab" aria-controls="job-panel" aria-selected="false">
                 Job Description
             </button>
-            <button class="nav-link" id="match-tab" data-bs-toggle="tab" data-bs-target="#match-panel" type="button" role="tab" aria-controls="match-panel" aria-selected="false">
+            <button class="nav-link" id="match-tab" type="button" role="tab" aria-controls="match-panel" aria-selected="false">
                 Match Analysis
             </button>
-            <button class="nav-link" id="tracker-tab" data-bs-toggle="tab" data-bs-target="#tracker-panel" type="button" role="tab" aria-controls="tracker-panel" aria-selected="false">
+            <button class="nav-link" id="tracker-tab" type="button" role="tab" aria-controls="tracker-panel" aria-selected="false">
                 Application Tracker
             </button>
-            <button class="nav-link" id="discovery-tab" data-bs-toggle="tab" data-bs-target="#discovery-panel" type="button" role="tab" aria-controls="discovery-panel" aria-selected="false">
+            <button class="nav-link" id="discovery-tab" type="button" role="tab" aria-controls="discovery-panel" aria-selected="false">
                 Job Discovery
             </button>
         </div>
@@ -88,87 +88,58 @@
                     </div>
                 </div>
 
-                <div class="card mt-4">
+                <div class="card mt-4 d-none" id="resumeResultsCard">
                     <div class="card-header">
                         <h5 class="mb-0">Resume Analysis Results</h5>
                     </div>
-                    <div class="card-body" id="resumeResults">
-                        <div class="row mb-4">
-                            <div class="col-md-3">
-                                <h6>Resume Score</h6>
-                                <div id="resume-score" class="display-4 fw-bold text-primary">0%</div>
-                            </div>
-                            <div class="col-md-9">
-                                <div id="resume-feedback" class="lead fs-5">Analyze your resume to see detailed feedback.</div>
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-2">
-                                    <small class="text-muted">Strengths</small>
-                                    <div id="resume-strengths"></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-2">
-                                    <small class="text-muted">Weaknesses</small>
-                                    <div id="resume-weaknesses"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <h6>Suggestions for Improvement</h6>
-                            <div id="resume-suggestions"></div>
+                    <div class="card-body p-0" id="resumeResults">
+                        <div class="p-4">
+                            <p class="text-muted" id="resumePlaceholder">Click "Analyze Resume" to see your results here.</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="card mt-4">
+                <div class="card mt-4 d-none" id="careerFitCard">
                     <div class="card-header">
                         <h5 class="mb-0">Career Fit Details</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row mb-4">
-                            <div class="col-md-3">
-                                <h6>Career Fit Score</h6>
-                                <div id="career-fit-score" class="display-4 fw-bold text-primary">0%</div>
+                        <div class="score-hero" style="margin-bottom:20px">
+                            <div class="score-hero-ring">
+                                <svg viewBox="0 0 120 120" width="140" height="140">
+                                    <circle class="ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="8"/>
+                                    <circle id="careerFitRing" cx="60" cy="60" r="52" fill="none" stroke-width="8"
+                                        stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="326.73"
+                                        transform="rotate(-90 60 60)"
+                                        style="transition:stroke-dashoffset 1.5s ease-in-out,stroke 0.6s ease"/>
+                                </svg>
+                                <div class="score-hero-value">
+                                    <span id="career-fit-score" class="score-hero-number">0%</span>
+                                    <span class="score-hero-label">Fit Score</span>
+                                </div>
                             </div>
-                            <div class="col-md-9">
-                                <div id="career-fit-feedback" class="lead fs-5">Analyze your resume to see career fit details.</div>
+                            <div class="score-hero-text">
+                                <h4 style="color:var(--text);font-family:'Sora';font-size:1.1rem;font-weight:700;margin-bottom:8px">Career Fit Assessment</h4>
+                                <p id="career-fit-feedback" style="color:var(--muted);line-height:1.7;font-size:0.95rem;margin:0;max-width:400px">Analyze a job description and select a target role to see how well your resume matches.</p>
+                                <div class="score-stats-row" style="margin-top:20px">
+                                    <div class="score-stat">
+                                        <span class="score-stat-val" id="total-experience">0 yrs</span>
+                                        <span class="score-stat-lbl">Total Exp</span>
+                                    </div>
+                                    <div class="score-stat">
+                                        <span class="score-stat-val" id="relevant-experience">0 yrs</span>
+                                        <span class="score-stat-lbl">Relevant</span>
+                                    </div>
+                                    <div class="score-stat">
+                                        <span class="score-stat-val" id="seniority-level">—</span>
+                                        <span class="score-stat-lbl">Level</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-2">
-                                    <small class="text-muted">Total Experience</small>
-                                    <div id="total-experience" class="h5 fw-bold">0 years</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-2">
-                                    <small class="text-muted">Relevant Experience</small>
-                                    <div id="relevant-experience" class="h5 fw-bold">0 years</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-2">
-                                    <small class="text-muted">Seniority Level</small>
-                                    <div id="seniority-level" class="h5 fw-bold">Entry Level</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div id="poor-fit-explanation" class="text-danger"></div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="targetRoleSelect" class="form-label">Target Role for Career Assessment:</label>
+                        <div class="fit-role-selector">
+                            <label class="fit-role-label" for="targetRoleSelect">Target Role</label>
                             <select class="form-select" id="targetRoleSelect">
                                 <option value="">-- Select a target role --</option>
                                 <option value="ecommerce-operations-specialist">E-commerce Operations Specialist</option>
@@ -194,37 +165,78 @@
 
             <!-- Job Description Panel -->
             <div class="tab-pane fade" id="job-panel" role="tabpanel" aria-labelledby="job-tab" tabindex="0">
+                <!-- Input Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Job Description</h5>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h5 class="mb-0">Job Description</h5>
+                            <span class="text-muted" style="font-size:0.8rem">Paste, fetch from URL, or upload a file</span>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label for="jobInput" class="form-label">Paste job description here:</label>
-                            <textarea class="form-control" id="jobInput" rows="8" placeholder="Copy and paste the job description..."></textarea>
+                        <!-- Unified textarea (always visible, single source of truth) -->
+                        <label for="jobInput" class="jd-section-label">Job description</label>
+                        <textarea class="form-control jd-main-textarea" id="jobInput" rows="8"
+                          placeholder="Paste the job description here — or use one of the sources below to fill it in automatically."></textarea>
+
+                        <!-- Compact source row: all three ways, one place -->
+                        <div class="jd-source-row">
+                            <button class="jd-source-pill" id="jdUploadBtn" type="button">
+                                <span class="jd-source-icon">📎</span> Upload file
+                            </button>
+                            <button class="jd-source-pill" id="jdFetchToggleBtn" type="button">
+                                <span class="jd-source-icon">🔗</span> Fetch from URL
+                            </button>
+                            <button class="jd-source-pill" id="jdSampleToggleBtn" type="button">
+                                <span class="jd-source-icon">✨</span> Try a sample
+                            </button>
                         </div>
-                        <div class="mb-3">
-                            <label for="jobSample" class="form-label">Or load a sample job description:</label>
+
+                        <!-- Inline URL fetch row (revealed on demand) -->
+                        <div id="jdUrlRow" class="jd-inline-row d-none">
+                            <div class="d-flex gap-2">
+                                <input type="url" class="form-control flex-grow-1" id="jobUrlInput"
+                                   placeholder="https://www.linkedin.com/jobs/…">
+                                <button class="btn btn-primary flex-shrink-0" id="fetchJobUrlBtn">Fetch</button>
+                            </div>
+                            <small class="jd-inline-note">Public pages work best. LinkedIn / Indeed may block the request — copy-paste into the box as a fallback.</small>
+                        </div>
+
+                        <!-- Inline sample row (revealed on demand) -->
+                        <div id="jdSampleRow" class="jd-inline-row d-none">
                             <select class="form-select" id="jobSample">
-                                <option value="">-- Select sample --</option>
+                                <option value="">-- Choose a sample role --</option>
                                 <option value="ecommerce-analyst">E-commerce Analyst</option>
                                 <option value="marketing-analyst-job">Marketing Analyst</option>
                                 <option value="business-analyst-job">Business Analyst</option>
                                 <option value="automation-specialist">Automation Specialist</option>
                             </select>
                         </div>
-                        <button class="btn btn-outline-primary" id="analyzeJobBtn">
+
+                        <!-- Hidden file input (driven by the Upload pill) -->
+                        <input type="file" class="d-none" id="jdFileUpload" accept=".txt,.pdf,.doc,.docx">
+
+                        <!-- Unified feedback area -->
+                        <div id="jobInputMessage" class="jd-message-area"></div>
+
+                        <button class="btn btn-primary w-100 jd-analyze-btn" id="analyzeJobBtn">
                             Analyze Job Description
                         </button>
                     </div>
                 </div>
 
-                <div class="card mt-4">
+                <!-- Results Card -->
+                <div class="card mt-4 d-none" id="jobResultsCard">
                     <div class="card-header">
-                        <h5 class="mb-0">Job Analysis Results</h5>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h5 class="mb-0">Job Analysis Results</h5>
+                            <button class="btn btn-sm btn-outline-secondary" id="copyJobBtn" title="Copy job description to clipboard">
+                                Copy JD
+                            </button>
+                        </div>
                     </div>
-                    <div class="card-body" id="jobResults">
-                        <p class="text-muted">Analyze the job description to see extracted requirements</p>
+                    <div class="card-body p-0" id="jobResults">
+                        <div class="p-4"><p class="text-muted">Analyze the job description to see extracted requirements.</p></div>
                     </div>
                 </div>
             </div>

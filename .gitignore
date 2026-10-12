@@ -1,0 +1,37 @@
+﻿# Local backups
+*.backup
+*.bak
+*.before-ui-backup
+*.before-date-fix.backup
+*.before-fix-1877.bak
+*.before-syntax-fix.backup
+*.original
+*.fixed
+
+# Temporary debugging and test files
+temp*.js
+test*.js
+check_*.js
+check_*.py
+count_*.py
+debug_*.js
+end_*.js
+find_*.py
+show_line.py
+get_context.js
+script_current.js
+script_no_txt.js
+script_test.js
+script.fixed
+body.txt
+function.txt
+
+# Local dependencies and secrets
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Operating system files
+.DS_Store
+Thumbs.db

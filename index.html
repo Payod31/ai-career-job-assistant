@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Career & Job Match Assistant</title>
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- PDF.js for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- Mammoth.js for DOCX text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.22/mammoth.browser.min.js"></script>
+    <!-- Custom styles -->
+    <!-- Premium UI fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- Custom styles -->
+<link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <header class="mb-5">
+            <h1 class="text-center">AI Career & Job Match Assistant</h1>
+            <p class="text-center text-muted">A tool to analyze your resume against job descriptions and get actionable insights</p>
+        </header>
+
+        <!-- Main Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-link active" id="resume-tab" data-bs-toggle="tab" data-bs-target="#resume-panel" type="button" role="tab" aria-controls="resume-panel" aria-selected="true">
+                Resume Analysis
+            </button>
+            <button class="nav-link" id="job-tab" data-bs-toggle="tab" data-bs-target="#job-panel" type="button" role="tab" aria-controls="job-panel" aria-selected="false">
+                Job Description
+            </button>
+            <button class="nav-link" id="match-tab" data-bs-toggle="tab" data-bs-target="#match-panel" type="button" role="tab" aria-controls="match-panel" aria-selected="false">
+                Match Analysis
+            </button>
+            <button class="nav-link" id="tracker-tab" data-bs-toggle="tab" data-bs-target="#tracker-panel" type="button" role="tab" aria-controls="tracker-panel" aria-selected="false">
+                Application Tracker
+            </button>
+            <button class="nav-link" id="discovery-tab" data-bs-toggle="tab" data-bs-target="#discovery-panel" type="button" role="tab" aria-controls="discovery-panel" aria-selected="false">
+                Job Discovery
+            </button>
+        </div>
+
+        <div class="tab-content" id="mainTabsContent">
+            <!-- Resume Panel -->
+            <div class="tab-pane fade show active" id="resume-panel" role="tabpanel" aria-labelledby="resume-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Your Resume</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="resumeInput" class="form-label">Paste your resume text here:</label>
+                            <textarea class="form-control" id="resumeInput" rows="8" placeholder="Copy and paste your resume text..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="resumeUpload" class="form-label">Or upload a resume file (TXT, PDF, DOCX):</label>
+                            <input type="file" class="form-control" id="resumeUpload" accept=".txt,.pdf,.doc,.docx">
+                            <small class="text-muted">Note: PDF/DOCX support requires browser-native text extraction. For best results, copy-paste text or use TXT files.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="resumeSample" class="form-label">Or load a sample resume:</label>
+                            <select class="form-select" id="resumeSample">
+                                <option value="">-- Select sample --</option>
+                                <option value="ecommerce-ops">E-commerce Operations Specialist</option>
+                                <option value="marketing-analyst">Marketing Analyst</option>
+                                <option value="business-analyst">Business Analyst</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-outline-primary" id="analyzeResumeBtn">
+                            Analyze Resume
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Resume Analysis Results</h5>
+                    </div>
+                    <div class="card-body" id="resumeResults">
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <h6>Resume Score</h6>
+                                <div id="resume-score" class="display-4 fw-bold text-primary">0%</div>
+                            </div>
+                            <div class="col-md-9">
+                                <div id="resume-feedback" class="lead fs-5">Analyze your resume to see detailed feedback.</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <small class="text-muted">Strengths</small>
+                                    <div id="resume-strengths"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <small class="text-muted">Weaknesses</small>
+                                    <div id="resume-weaknesses"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6>Suggestions for Improvement</h6>
+                            <div id="resume-suggestions"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Career Fit Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <h6>Career Fit Score</h6>
+                                <div id="career-fit-score" class="display-4 fw-bold text-primary">0%</div>
+                            </div>
+                            <div class="col-md-9">
+                                <div id="career-fit-feedback" class="lead fs-5">Analyze your resume to see career fit details.</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <small class="text-muted">Total Experience</small>
+                                    <div id="total-experience" class="h5 fw-bold">0 years</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <small class="text-muted">Relevant Experience</small>
+                                    <div id="relevant-experience" class="h5 fw-bold">0 years</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <small class="text-muted">Seniority Level</small>
+                                    <div id="seniority-level" class="h5 fw-bold">Entry Level</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="poor-fit-explanation" class="text-danger"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="targetRoleSelect" class="form-label">Target Role for Career Assessment:</label>
+                            <select class="form-select" id="targetRoleSelect">
+                                <option value="">-- Select a target role --</option>
+                                <option value="ecommerce-operations-specialist">E-commerce Operations Specialist</option>
+                                <option value="marketplace-analyst">Marketplace Analyst</option>
+                                <option value="ecommerce-analyst">E-commerce Analyst</option>
+                                <option value="business-analyst">Business Analyst</option>
+                                <option value="operations-analyst">Operations Analyst</option>
+                                <option value="marketing-analyst">Marketing Analyst</option>
+                                <option value="performance-marketing-analyst">Performance Marketing Analyst</option>
+                                <option value="marketing-analytics-analyst">Marketing Analytics Analyst</option>
+                                <option value="ai-operations-analyst">AI Operations Analyst</option>
+                                <option value="workflow-automation-analyst">Workflow Automation Analyst</option>
+                                <option value="junior-data-analyst">Junior Data Analyst</option>
+                            </select>
+                        </div>
+
+                        <div id="career-fit-details" class="mt-4">
+                            <!-- Detailed breakdown will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Description Panel -->
+            <div class="tab-pane fade" id="job-panel" role="tabpanel" aria-labelledby="job-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Job Description</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="jobInput" class="form-label">Paste job description here:</label>
+                            <textarea class="form-control" id="jobInput" rows="8" placeholder="Copy and paste the job description..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="jobSample" class="form-label">Or load a sample job description:</label>
+                            <select class="form-select" id="jobSample">
+                                <option value="">-- Select sample --</option>
+                                <option value="ecommerce-analyst">E-commerce Analyst</option>
+                                <option value="marketing-analyst-job">Marketing Analyst</option>
+                                <option value="business-analyst-job">Business Analyst</option>
+                                <option value="automation-specialist">Automation Specialist</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-outline-primary" id="analyzeJobBtn">
+                            Analyze Job Description
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Job Analysis Results</h5>
+                    </div>
+                    <div class="card-body" id="jobResults">
+                        <p class="text-muted">Analyze the job description to see extracted requirements</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Match Analysis Panel -->
+            <div class="tab-pane fade" id="match-panel" role="tabpanel" aria-labelledby="match-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Job Match Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary mb-3" id="calculateMatchBtn">
+                            Calculate Match Score
+                        </button>
+                        <div id="matchResults"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Tracker Panel -->
+            <div class="tab-pane fade" id="tracker-panel" role="tabpanel" aria-labelledby="tracker-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Application Tracker</h5>
+                        <button class="btn btn-sm btn-outline-secondary" id="addApplicationBtn">
+                            + Add Application
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="applicationForm" class="d-none">
+                            <form id="appForm">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-4">
+                                        <label for="appCompany" class="form-label">Company</label>
+                                        <input type="text" class="form-control" id="appCompany" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="appRole" class="form-label">Position</label>
+                                        <input type="text" class="form-control" id="appRole" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="appDate" class="form-label">Application Date</label>
+                                        <input type="date" class="form-control" id="appDate" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="appLink" class="form-label">Job Link (optional)</label>
+                                    <input type="url" class="form-control" id="appLink" placeholder="https://...">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="appStatus" class="form-label">Status</label>
+                                    <select class="form-select" id="appStatus">
+                                        <option value="applied">Applied</option>
+                                        <option value="interviewing">Interviewing</option>
+                                        <option value="offer">Offer Received</option>
+                                        <option value="rejected">Rejected</option>
+                                        <option value="withdrawn">Withdrawn</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="appNotes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="appNotes" rows="3"></textarea>
+                                </div>
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="submit" class="btn btn-primary me-md-2" id="submitApplicationBtn">Save Application</button>
+                                    <button type="button" class="btn btn-outline-secondary" id="cancelAppBtn">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div id="applicationsList">
+                            <p class="text-muted">No applications recorded yet. Click "Add Application" to get started.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Discovery Panel -->
+            <div class="tab-pane fade" id="discovery-panel" role="tabpanel" aria-labelledby="discovery-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Find Real Job Opportunities</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Resume Upload Section -->
+                        <div class="mb-4">
+                            <h6>Your Resume Profile</h6>
+                            <div class="row g-3">
+                                <div class="col-md-8">
+                                    <input type="file" class="form-control" id="discoveryResumeUpload" accept=".txt,.pdf,.doc,.docx">
+                                    <small class="text-muted">Upload resume (TXT, PDF, DOCX) to extract text and build your profile</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-outline-primary w-100" id="discoveryClearProfileBtn">
+                                        Clear Profile
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="discoveryResumeStatus" class="mt-2"></div>
+                        </div>
+
+                        <!-- Info Section -->
+                        <div class="alert alert-info mb-4">
+                            <h6>How it works:</h6>
+                            <p class="mb-0">This tool helps you find real job opportunities in two ways:</p>
+                            <ul class="mb-0">
+                                <li><strong>Live Vacancy Listings</strong>: Curated job opportunities from top companies</li>
+                                <li><strong>Job-board Search</strong>: Generate pre-filled search links for major job boards based on your resume profile</li>
+                            </ul>
+                            <div class="mb-3">
+                                <label class="form-switch form-switch-lg" for="discoveryModeSwitch">
+    <input type="checkbox" id="discoveryModeSwitch" checked>
+    <span class="ms-2">Show live vacancy listings (unchecked = job-board search)</span>
+</label>
+                            </div>
+                        </div>
+
+                        <!-- Filters (kept for user customization) -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3">
+                                <label for="discRoleFilter" class="form-label">Target Role</label>
+                                <select class="form-select" id="discRoleFilter">
+                                    <option value="">All Roles</option>
+                                    <option value="ecommerce-analyst">E-commerce Analyst</option>
+                                    <option value="marketplace-analyst">Marketplace Analyst</option>
+                                    <option value="business-analyst">Business Analyst</option>
+                                    <option value="operations-analyst">Operations Analyst</option>
+                                    <option value="marketing-analyst">Marketing Analytics</option>
+                                    <option value="performance-marketing-analyst">Performance Marketing Analyst</option>
+                                    <option value="ai-operations-analyst">AI Operations Analyst</option>
+                                    <option value="workflow-automation-analyst">Workflow Automation Analyst</option>
+                                    <option value="junior-data-analyst">Junior Data Analyst</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="discLocationFilter" class="form-label">Location</label>
+                                <select class="form-select" id="discLocationFilter">
+                                    <option value="">All Locations</option>
+                                    <option value="pune">Pune</option>
+                                    <option value="bengaluru">Bengaluru</option>
+                                    <option value="mumbai">Mumbai</option>
+                                    <option value="hyderabad">Hyderabad</option>
+                                    <option value="remote">Remote</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="discSalaryMin" class="form-label">Min Salary (LPA)</label>
+                                <input type="number" class="form-control" id="discSalaryMin" placeholder="e.g., 12" min="0" step="0.5">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="discSalaryMax" class="form-label">Max Salary (LPA)</label>
+                                <input type="number" class="form-control" id="discSalaryMax" placeholder="e.g., 18" min="0" step="0.5">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="discExperience" class="form-label">Min Experience (Years)</label>
+                                <input type="number" class="form-control" id="discExperience" placeholder="e.g., 2" min="0" step="0.5">
+                            </div>
+                        </div>
+
+                        <!-- Clear Filters Button -->
+                        <div class="d-flex justify-content-center mb-2">
+                            <button class="btn btn-outline-secondary" id="clearFiltersBtn">
+                                Clear Filters
+                            </button>
+                        </div>
+
+                        <!-- Find Jobs Button -->
+                        <div class="d-flex justify-content-center mb-4">
+                            <button class="btn btn-primary btn-lg px-5" id="findJobsBtn">
+                                Find Relevant Jobs
+                            </button>
+                        </div>
+
+                        <!-- Current Salary Info (Private) -->
+                        <div class="alert alert-info mb-3" style="display: none;" id="salaryInfo">
+                            <small>Your current CTC: ₹9.8 LPA | Target: ₹12-15 LPA | Stretch: ₹15-18 LPA (private)</small>
+                        </div>
+
+                        <!-- Results Container -->
+                        <div id="discoveryResults">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">💼</div>
+                                <p>Click "Find Relevant Jobs" to discover real job opportunities based on your profile</p>
+                            </div>
+                        </div>
+
+                        <!-- Surely Remote Integration -->
+                        <div class="mt-4 pt-3 border-top">
+                            <h6>Surely Remote Integration</h6>
+                            <p class="text-muted">
+                                Surely Remote is a specialized job board for remote work opportunities.
+                                While this application doesn't have direct integration with Surely Remote's API,
+                                you can use the job-board search mode above to find remote positions.
+                            </p>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                                <a href="https://www.surelyremote.com/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">
+                                    Visit Surely Remote directly
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="searchSurelyRemote()">
+                                    Search Surely Remote via Job Boards
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

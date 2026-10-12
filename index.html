@@ -6,10 +6,6 @@
     <title>AI Career & Job Match Assistant</title>
     <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- PDF.js for PDF text extraction -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <!-- Mammoth.js for DOCX text extraction -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.22/mammoth.browser.min.js"></script>
     <!-- Custom styles -->
     <!-- Premium UI fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,14 +49,29 @@
                         <h5 class="mb-0">Your Resume</h5>
                     </div>
                     <div class="card-body">
+                        <div class="mb-4">
+                            <h5 class="mb-2">Upload or paste your resume</h5>
+                            <p class="text-muted mb-0">Get started by providing your resume text. You can paste it directly, upload a file, or load a sample to see how it works.</p>
+                        </div>
                         <div class="mb-3">
                             <label for="resumeInput" class="form-label">Paste your resume text here:</label>
                             <textarea class="form-control" id="resumeInput" rows="8" placeholder="Copy and paste your resume text..."></textarea>
+                            <div id="resumeInputMessage" class="mt-2"></div>
                         </div>
-                        <div class="mb-3">
-                            <label for="resumeUpload" class="form-label">Or upload a resume file (TXT, PDF, DOCX):</label>
-                            <input type="file" class="form-control" id="resumeUpload" accept=".txt,.pdf,.doc,.docx">
-                            <small class="text-muted">Note: PDF/DOCX support requires browser-native text extraction. For best results, copy-paste text or use TXT files.</small>
+                        <div class="mb-4">
+                            <div class="resume-upload-zone" id="resumeUploadZone">
+                                <input type="file" class="form-control" id="resumeUpload" accept=".txt,.pdf,.doc,.docx" style="display: none;">
+                                <div class="upload-icon">
+                                    📄
+                                </div>
+                                <div class="upload-text">
+                                    <h3>Drag & drop your resume here</h3>
+                                    <p class="mb-0">or click to select a file</p>
+                                </div>
+                                <div class="upload-hint">
+                                    Supported formats: TXT, PDF, DOCX
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="resumeSample" class="form-label">Or load a sample resume:</label>
@@ -71,7 +82,7 @@
                                 <option value="business-analyst">Business Analyst</option>
                             </select>
                         </div>
-                        <button class="btn btn-outline-primary" id="analyzeResumeBtn">
+                        <button class="btn btn-primary" id="analyzeResumeBtn">
                             Analyze Resume
                         </button>
                     </div>

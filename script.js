@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const matchSuggestions = document.getElementById('match-suggestions');
   const discoveryResumeStatus = document.getElementById('discoveryResumeStatus');
   const discoveryResults = document.getElementById('discoveryResults');
+  const resumeInputMessage = document.getElementById('resumeInputMessage');
 const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
   const discRoleFilter = document.getElementById('discRoleFilter');
   const discLocationFilter = document.getElementById('discLocationFilter');
@@ -110,20 +111,75 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       resumeInput.value = text;
       resumeInput.disabled = false;
 
-      // Auto-analyze the resume
-      resumeData = parseResume(text);
-      saveResumeProfile(resumeData);
-      updateResumeAnalysisUI();
-      // Switch to resume analysis tab
-      tabButtons.resumeAnalysis.click();
+      // Show success message with filename
+      resumeInputMessage.innerHTML = `<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+        <i class="bi bi-check-circle me-2"></i>Resume text loaded from <strong>${file.name}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>`;
+
+      // Enable the Analyze Resume button when there's text
+      analyzeResumeBtn.disabled = false;
+
+      // Hide results panels until analysis is performed
+      document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
+        card.classList.add('d-none');
+      });
+      document.getElementById('career-fit-score').textContent = '0%';
+      document.getElementById('career-fit-feedback').textContent = 'Analyze your resume to see career fit details.';
+      document.getElementById('career-fit-details').innerHTML = '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
     } catch (error) {
       // Handle errors
       resumeInput.value = '';
       resumeInput.disabled = false;
-      alert(`Error processing file: ${error.message}`);
+      resumeInput.placeholder = 'Copy and paste your resume text...';
+      analyzeResumeBtn.disabled = true;
+
+      // Show error message
+      resumeInputMessage.innerHTML = `<div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>${error.message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>`;
+
       console.error('File processing error:', error);
     }
   });
+
+  // Resume upload zone event listeners
+  const resumeUploadZone = document.getElementById('resumeUploadZone');
+  if (resumeUploadZone) {
+    // Handle click on upload zone
+    resumeUploadZone.addEventListener('click', () => {
+      document.getElementById('resumeUpload').click();
+    });
+
+    // Handle drag over
+    resumeUploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      resumeUploadZone.classList.add('dragover');
+    });
+
+    // Handle drag leave
+    resumeUploadZone.addEventListener('dragleave', () => {
+      resumeUploadZone.classList.remove('dragover');
+    });
+
+    // Handle drop
+    resumeUploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      resumeUploadZone.classList.remove('dragover');
+
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        // Create a new FileList object with the dropped file
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        document.getElementById('resumeUpload').files = dataTransfer.files;
+
+        // Trigger the change event
+        document.getElementById('resumeUpload').dispatchEvent(new Event('change'));
+      }
+    });
+  }
 
   // Analyze resume button handler
   analyzeResumeBtn.addEventListener('click', () => {
@@ -132,6 +188,12 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       resumeData = parseResume(resumeText);
       saveResumeProfile(resumeData);
       updateResumeAnalysisUI();
+
+      // Show results panels after analysis
+      document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
+        card.classList.remove('d-none');
+      });
+
       // Switch to resume analysis tab
       tabButtons.resumeAnalysis.click();
     } else {
@@ -150,17 +212,33 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
           const sampleResume = data.sampleResumes[sampleValue];
           if (sampleResume) {
             resumeInput.value = sampleResume;
-            // Auto-analyze the resume
-            resumeData = parseResume(sampleResume);
-            saveResumeProfile(resumeData);
-            updateResumeAnalysisUI();
-            // Switch to resume analysis tab
-            tabButtons.resumeAnalysis.click();
+            resumeInput.disabled = false;
+
+            // Show success message
+            resumeInputMessage.innerHTML = `<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+              <i class="bi bi-check-circle me-2"></i>Sample resume loaded: <strong>${resumeSample.options[resumeSample.selectedIndex].text}</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+
+            // Enable the Analyze Resume button when there's text
+            analyzeResumeBtn.disabled = false;
+
+            // Hide results panels until analysis is performed
+            document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
+              card.classList.add('d-none');
+            });
+            document.getElementById('career-fit-score').textContent = '0%';
+            document.getElementById('career-fit-feedback').textContent = 'Analyze your resume to see career fit details.';
+            document.getElementById('career-fit-details').innerHTML = '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
           }
         })
         .catch(error => {
           console.error('Error loading sample resume:', error);
-          alert('Error loading sample resume');
+          // Show error message
+          resumeInputMessage.innerHTML = `<div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>Error loading sample resume
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>`;
         });
     }
   });
@@ -1138,6 +1216,14 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
     // Render applications list
     renderApplicationsList();
+
+    // Hide results panels initially
+    document.getElementById('resume-panel').querySelectorAll('.card:not(:first-child)').forEach(card => {
+      card.classList.add('d-none');
+    });
+    document.getElementById('career-fit-score').textContent = '0%';
+    document.getElementById('career-fit-feedback').textContent = 'Analyze your resume to see career fit details.';
+    document.getElementById('career-fit-details').innerHTML = '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
 
     // Set initial discovery mode switch label
     if (discoveryModeSwitch.checked) {

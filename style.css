@@ -1173,8 +1173,6 @@ a:hover {
    New visual overrides — preserve existing logic
    ========================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap');
-
 :root {
     --bg: #0C0D12;
     --surface: #15171F;
@@ -2306,4 +2304,14 @@ code {
     .empty-state {
         padding: 24px 14px;
     }
+}
+
+/* Message area styling */
+#resumeInputMessage .alert {
+    margin-bottom: 1rem;
+    border-radius: var(--border-radius);
+}
+
+#resumeInputMessage .alert .bi {
+    font-size: 1.25rem;
 }

@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const poorFitExplanation = document.getElementById('poor-fit-explanation');
   const jobResults = document.getElementById('jobResults');
   const matchResults = document.getElementById('matchResults');
+  const resumeResults = document.getElementById('resumeResults');
   const matchFeedback = document.getElementById('match-feedback');
   const matchSuggestions = document.getElementById('match-suggestions');
   const discoveryResumeStatus = document.getElementById('discoveryResumeStatus');

@@ -17,34 +17,63 @@
 </head>
 <body>
     <div class="container py-4">
-        <header class="mb-5">
-            <h1 class="text-center">AI Career & Job Match Assistant</h1>
-            <p class="text-center text-muted">A tool to analyze your resume against job descriptions and get actionable insights</p>
+        <header class="mb-5 app-header">
+            <div class="theme-fx" id="themeFx" aria-hidden="true"></div>
+            <h1 class="text-center hero-title">Your next role is <span class="hero-accent">already waiting.</span></h1>
+            <p class="text-center text-muted app-tagline" id="heroTagline">Analyze your resume against job descriptions and get actionable insights</p>
+            <div class="theme-switch" role="group" aria-label="Pick a vibe">
+                <button class="theme-chip active" type="button" data-theme="ink">🖋 Ink</button>
+                <button class="theme-chip" type="button" data-theme="onepiece">🏴‍☠️ One Piece</button>
+                <button class="theme-chip" type="button" data-theme="wizard">🪄 Wizarding</button>
+            </div>
+            <div class="rotating-quote" id="rotatingQuote" aria-live="polite">
+                <span class="rotating-quote-tag" id="quoteTag">Pro tip</span>
+                <span class="rotating-quote-text" id="rotatingQuoteText"></span>
+                <span class="rotating-quote-dots" id="rotatingQuoteDots"></span>
+            </div>
         </header>
 
-        <!-- Main Tabs -->
-        <div class="nav-tabs" role="tablist">
-            <button class="nav-link active" id="resume-tab" type="button" role="tab" aria-controls="resume-panel" aria-selected="true">
-                Resume Analysis
-            </button>
-            <button class="nav-link" id="job-tab" type="button" role="tab" aria-controls="job-panel" aria-selected="false">
-                Job Description
-            </button>
-            <button class="nav-link" id="match-tab" type="button" role="tab" aria-controls="match-panel" aria-selected="false">
-                Match Analysis
-            </button>
-            <button class="nav-link" id="tracker-tab" type="button" role="tab" aria-controls="tracker-panel" aria-selected="false">
-                Application Tracker
-            </button>
-            <button class="nav-link" id="discovery-tab" type="button" role="tab" aria-controls="discovery-panel" aria-selected="false">
-                Job Discovery
-            </button>
-        </div>
+        <!-- App shell: sticky side rail on desktop, pill row on mobile -->
+        <div class="app-shell">
+            <div class="nav-tabs" role="tablist">
+                <div class="app-brand">Career<span class="app-brand-dot">AI</span></div>
+                <button class="nav-link active" id="resume-tab" type="button" role="tab" aria-controls="resume-panel" aria-selected="true">
+                    Resume
+                </button>
+                <button class="nav-link" id="job-tab" type="button" role="tab" aria-controls="job-panel" aria-selected="false">
+                    Job Description
+                </button>
+                <button class="nav-link" id="match-tab" type="button" role="tab" aria-controls="match-panel" aria-selected="false">
+                    Match
+                </button>
+                <button class="nav-link" id="tracker-tab" type="button" role="tab" aria-controls="tracker-panel" aria-selected="false">
+                    Pipeline
+                </button>
+                <button class="nav-link" id="discovery-tab" type="button" role="tab" aria-controls="discovery-panel" aria-selected="false">
+                    Discover
+                </button>
+                <button class="nav-link" id="planner-tab" type="button" role="tab" aria-controls="planner-panel" aria-selected="false">
+                    Planner
+                </button>
+            </div>
 
-        <div class="tab-content" id="mainTabsContent">
+            <div class="tab-content" id="mainTabsContent">
             <!-- Resume Panel -->
             <div class="tab-pane fade show active" id="resume-panel" role="tabpanel" aria-labelledby="resume-tab" tabindex="0">
-                <div class="card">
+                <!-- Saved profile banner: restore / replace (via Analyze) / clear -->
+                <div class="card profile-banner mt-4 d-none" id="profileBanner">
+                    <div class="card-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+                        <div style="flex:1;min-width:220px">
+                            <h6 class="mb-1" style="font-size:.95rem">Saved profile (this device only)</h6>
+                            <p class="mb-0" id="profileBannerSummary" style="font-size:.8rem;color:var(--muted)"></p>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <button class="btn btn-outline-primary btn-sm" id="profileRestoreBtn" type="button">Restore into editor</button>
+                            <button class="btn btn-outline-secondary btn-sm" id="profileClearBtn" type="button">Clear saved profile</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-3">
                     <div class="card-header">
                         <h5 class="mb-0">Your Resume</h5>
                     </div>
@@ -74,12 +103,36 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="resumeSample" class="form-label">Or load a sample resume:</label>
+                            <label for="resumeSample" class="form-label">Or load a sample resume <span class="text-muted" style="font-size:.75rem">(examples only — won't overwrite your saved profile)</span></label>
                             <select class="form-select" id="resumeSample">
                                 <option value="">-- Select sample --</option>
-                                <option value="ecommerce-ops">E-commerce Operations Specialist</option>
-                                <option value="marketing-analyst">Marketing Analyst</option>
-                                <option value="business-analyst">Business Analyst</option>
+                                <optgroup label="E-commerce & Marketplace">
+                                    <option value="ecommerce-ops">E-commerce Operations Specialist</option>
+                                </optgroup>
+                                <optgroup label="Marketing & Analytics">
+                                    <option value="marketing-analyst">Marketing Analyst</option>
+                                    <option value="digital-marketer">Digital Marketing Specialist</option>
+                                    <option value="seo-specialist">SEO Specialist</option>
+                                    <option value="social-media">Social Media Manager</option>
+                                    <option value="brand-manager">Brand Marketing Manager</option>
+                                    <option value="content-strategist">Content Strategy Lead</option>
+                                    <option value="product-marketer">Product Marketing Manager</option>
+                                </optgroup>
+                                <optgroup label="Business & Operations">
+                                    <option value="business-analyst">Business Analyst</option>
+                                    <option value="ops-analyst">Operations Analyst</option>
+                                    <option value="sales-bde">Business Development Executive</option>
+                                    <option value="project-coordinator">Project Coordinator</option>
+                                </optgroup>
+                                <optgroup label="Data & Technical">
+                                    <option value="data-analyst">Data Analyst</option>
+                                    <option value="it-support">IT Support Specialist</option>
+                                </optgroup>
+                                <optgroup label="People & Finance">
+                                    <option value="hr-analyst">HR Analytics Specialist</option>
+                                    <option value="finance-analyst">Financial Analyst</option>
+                                    <option value="customer-success">Customer Success Manager</option>
+                                </optgroup>
                             </select>
                         </div>
                         <button class="btn btn-primary" id="analyzeResumeBtn">
@@ -174,32 +227,30 @@
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Single obvious starting point: import a listing by URL -->
+                        <div class="jd-importer">
+                            <label for="jobUrlInput" class="jd-section-label">Import a job listing</label>
+                            <div class="d-flex gap-2">
+                                <input type="url" class="form-control jd-importer-url flex-grow-1" id="jobUrlInput"
+                                   placeholder="Paste a job URL — LinkedIn, Naukri, Indeed, or a company careers page">
+                                <button class="btn btn-primary flex-shrink-0" id="fetchJobUrlBtn">Import</button>
+                            </div>
+                            <small class="jd-importer-note">We try to pull the listing automatically. If the site blocks that, nothing is lost — your link stays saved and you just paste the job text in 10 seconds.</small>
+                        </div>
+
                         <!-- Unified textarea (always visible, single source of truth) -->
                         <label for="jobInput" class="jd-section-label">Job description</label>
                         <textarea class="form-control jd-main-textarea" id="jobInput" rows="8"
-                          placeholder="Paste the job description here — or use one of the sources below to fill it in automatically."></textarea>
+                          placeholder="Paste the job description here — or import it by URL / file above."></textarea>
 
-                        <!-- Compact source row: all three ways, one place -->
+                        <!-- Compact source row -->
                         <div class="jd-source-row">
                             <button class="jd-source-pill" id="jdUploadBtn" type="button">
                                 <span class="jd-source-icon">📎</span> Upload file
                             </button>
-                            <button class="jd-source-pill" id="jdFetchToggleBtn" type="button">
-                                <span class="jd-source-icon">🔗</span> Fetch from URL
-                            </button>
                             <button class="jd-source-pill" id="jdSampleToggleBtn" type="button">
                                 <span class="jd-source-icon">✨</span> Try a sample
                             </button>
-                        </div>
-
-                        <!-- Inline URL fetch row (revealed on demand) -->
-                        <div id="jdUrlRow" class="jd-inline-row d-none">
-                            <div class="d-flex gap-2">
-                                <input type="url" class="form-control flex-grow-1" id="jobUrlInput"
-                                   placeholder="https://www.linkedin.com/jobs/…">
-                                <button class="btn btn-primary flex-shrink-0" id="fetchJobUrlBtn">Fetch</button>
-                            </div>
-                            <small class="jd-inline-note">Public pages work best. LinkedIn / Indeed may block the request — copy-paste into the box as a fallback.</small>
                         </div>
 
                         <!-- Inline sample row (revealed on demand) -->
@@ -219,9 +270,20 @@
                         <!-- Unified feedback area -->
                         <div id="jobInputMessage" class="jd-message-area"></div>
 
-                        <button class="btn btn-primary w-100 jd-analyze-btn" id="analyzeJobBtn">
-                            Analyze Job Description
-                        </button>
+                        <div class="jd-action-row">
+                            <button class="btn btn-primary w-100 jd-analyze-btn" id="analyzeAgainstResumeBtn">
+                                Analyze against my resume
+                            </button>
+                            <button class="btn btn-outline-secondary w-100" id="analyzeJobBtn">
+                                Analyze Job Description
+                            </button>
+                        </div>
+
+                        <!-- Extracted details, editable by the user -->
+                        <div id="jdReview" class="jd-review d-none"></div>
+
+                        <!-- Match outcome -->
+                        <div id="jdOutcome" class="jd-outcome d-none"></div>
                     </div>
                 </div>
 
@@ -268,6 +330,7 @@
                     <div class="card-body">
                         <div id="applicationForm" class="d-none">
                             <form id="appForm">
+                                <div id="appFormTitle" class="fw-bold mb-2" style="font-size:.9rem">Add Application</div>
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-4">
                                         <label for="appCompany" class="form-label">Company</label>
@@ -301,8 +364,8 @@
                                     <textarea class="form-control" id="appNotes" rows="3"></textarea>
                                 </div>
                                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                    <button type="submit" class="btn btn-primary me-md-2" id="submitApplicationBtn">Save Application</button>
-                                    <button type="button" class="btn btn-outline-secondary" id="cancelAppBtn">Cancel</button>
+                                    <button type="submit" class="btn btn-primary me-md-2" id="submitApplicationBtn"><span id="saveAppLabel">Save Application</span></button>
+                                    <button type="button" class="btn btn-outline-secondary" id="cancelAppBtn"><span id="cancelAppLabel">Cancel</span></button>
                                 </div>
                             </form>
                         </div>
@@ -338,18 +401,22 @@
                             <div id="discoveryResumeStatus" class="mt-2"></div>
                         </div>
 
+                        <!-- Resume-based target roles + recommendations (populated by JS) -->
+                        <div id="discoveryRecommend" class="mb-4"></div>
+
                         <!-- Info Section -->
                         <div class="alert alert-info mb-4">
-                            <h6>How it works:</h6>
-                            <p class="mb-0">This tool helps you find real job opportunities in two ways:</p>
+                            <h6>What this tool does:</h6>
+                            <p class="mb-0">Two clearly-labelled modes, no surprises:</p>
                             <ul class="mb-0">
-                                <li><strong>Live Vacancy Listings</strong>: Curated job opportunities from top companies</li>
-                                <li><strong>Job-board Search</strong>: Generate pre-filled search links for major job boards based on your resume profile</li>
+                                <li><strong>Personalized target roles</strong>: above, CareerAI suggests roles from the skills &amp; experience actually on your resume, and explains why each fits. Add the roles you want to search (or a custom title), then use the filters and "Get Job-Board Search Links".</li>
+                                <li><strong>Job-board search</strong>: pre-filled <em>external</em> links into LinkedIn, Indeed, Naukri and Monster built from your chosen target roles + filters. These are <em>links you open</em>, not listings fetched by this app.</li>
+                                <li><strong>Live listings — not available yet</strong>: an explicit placeholder. No vacancies, salaries or companies are invented or implied. A real listing source would need an authorized job API; none is wired in yet.</li>
                             </ul>
                             <div class="mb-3">
                                 <label class="form-switch form-switch-lg" for="discoveryModeSwitch">
-    <input type="checkbox" id="discoveryModeSwitch" checked>
-    <span class="ms-2">Show live vacancy listings (unchecked = job-board search)</span>
+    <input type="checkbox" id="discoveryModeSwitch">
+    <span class="ms-2">Show the live-listings placeholder (unchecked = job-board search)</span>
 </label>
                             </div>
                         </div>
@@ -406,7 +473,7 @@
                         <!-- Find Jobs Button -->
                         <div class="d-flex justify-content-center mb-4">
                             <button class="btn btn-primary btn-lg px-5" id="findJobsBtn">
-                                Find Relevant Jobs
+                                Get Job-Board Search Links
                             </button>
                         </div>
 
@@ -433,9 +500,9 @@
                             </p>
                             <div class="d-grid gap-2 d-md-flex justify-content-md-start">
                                 <a href="https://www.surelyremote.com/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">
-                                    Visit Surely Remote directly
+                                    Browse Jobs on Surely Remote
                                 </a>
-                                <button class="btn btn-outline-secondary" onclick="searchSurelyRemote()">
+                                <button class="btn btn-outline-secondary" id="searchSurelyRemoteBtn">
                                     Search Surely Remote via Job Boards
                                 </button>
                             </div>
@@ -443,7 +510,54 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Career Transition Planner Panel -->
+            <div class="tab-pane fade" id="planner-panel" role="tabpanel" aria-labelledby="planner-tab" tabindex="0">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Career Transition Planner</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="plannerContent">
+                            <!-- Planner content will be dynamically generated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restore the last active tab before first paint so a refresh lands on
+                 the saved tab instead of flashing Resume first. Mirrors switchTab()
+                 in script.js; .tabs-ready releases the content from its pre-paint
+                 hidden state (see style.css). -->
+            <script>
+                (function () {
+                    var main = document.getElementById('mainTabsContent');
+                    var map = {
+                        resumeAnalysis: 'resume', jobAnalysis: 'job', matchCalculation: 'match',
+                        applicationTracker: 'tracker', jobDiscovery: 'discovery', plannerAnalysis: 'planner'
+                    };
+                    var id = 'resume';
+                    try {
+                        document.querySelectorAll('.nav-tabs .nav-link').forEach(function (b) {
+                            b.classList.remove('active');
+                            b.setAttribute('aria-selected', 'false');
+                        });
+                        document.querySelectorAll('#mainTabsContent .tab-pane').forEach(function (p) {
+                            p.classList.remove('show', 'active', 'fade');
+                            p.style.display = 'none';
+                        });
+                        var btn = document.getElementById(id + '-tab');
+                        var pane = document.getElementById(id + '-panel');
+                        if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
+                        if (pane) { pane.classList.add('show', 'active'); pane.style.display = ''; }
+                    } finally {
+                        if (main) main.classList.add('tabs-ready');
+                    }
+                })();
+            </script>
         </div>
+        </div>
+
     </div>
 
     <!-- Bootstrap Bundle with Popper -->

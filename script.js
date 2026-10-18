@@ -18,7 +18,9 @@ const sampleData = {
     "project-coordinator": "Project Coordinator\nBuildRight Consulting, Bengaluru | 2022 - Present\n- Coordinated 6 concurrent client projects across IT, manufacturing, and healthcare sectors\n- Managed project timelines, milestones, and deliverables using Jira and Microsoft Project\n- Scheduled cross-functional standups, wrote meeting minutes, tracked action items to closure\n- Coordinated vendor deliverables and managed a ₹50L project budget\n- Created status reports and RAG dashboards for steering committees\n- Education: BSc Project Management, PMP (foundation level)",
     "it-support": "IT Support Specialist\nTechGuard Solutions, Chennai | 2021 - 2023\n- Supported 200+ end users across 3 offices: resolved 15-20 tickets daily (hardware, software, network)\n- Managed active directory, GPO, and license administration (Microsoft 365, Adobe)\n- Assisted with network troubleshooting: VLAN configuration, DNS, DHCP, firewalls\n- Built a knowledge base with 100+ articles, reducing repeat ticket volume by 30%\n- Certified: CompTIA A+, CompTIA Network+",
     "data-analyst": "Data Analyst\nInsightMetrics, Hyderabad | 2022 - Present\n- Built SQL queries and Python scripts to clean and analyze datasets of 500K+ rows\n- Created Power BI dashboards for 5 business units; improved decision speed by reducing data prep from 2 days to 2 hours\n- Designed A/B test frameworks for pricing experiments; 3 tests led to ₹20L revenue uplift\n- Wrote regular analysis reports for product leadership covering retention, churn, and funnel metrics\n- Tools: Python (pandas, matplotlib), SQL (PostgreSQL), Power BI, Excel, Tableau\n- Education: BSc Statistics, Google Data Analytics Certificate",
-    "product-marketer": "Product Marketing Manager\nSaaSOrbit, Mumbai | 2021 - 2024\n- Owned product positioning, messaging, and launch strategy for 4 product releases\n- Created sales enablement materials: decks, one-pagers, competitor battlecards, demo scripts\n- Managed product marketing funnel: awareness → consideration → purchase via content and webinars\n- Worked with pricing team on packaging; supported 2 price increases with migration comms\n- Analyzed win/loss data to refine ICP and improve targeting across marketing campaigns\n- Education: BBA, PGDM Marketing"
+    "product-marketer": "Product Marketing Manager\nSaaSOrbit, Mumbai | 2021 - 2024\n- Owned product positioning, messaging, and launch strategy for 4 product releases\n- Created sales enablement materials: decks, one-pagers, competitor battlecards, demo scripts\n- Managed product marketing funnel: awareness → consideration → purchase via content and webinars\n- Worked with pricing team on packaging; supported 2 price increases with migration comms\n- Analyzed win/loss data to refine ICP and improve targeting across marketing campaigns\n- Education: BBA, PGDM Marketing",
+    "java-developer": "Java Software Engineer\nNovaSoft Systems, Bengaluru | 2022 - Present\n- Built and maintained REST APIs in Java (Spring Boot) serving 40+ microservices; owned payments and catalog domains\n- Wrote JUnit and Mockito test suites; raised unit-test coverage from 45% to 78%\n- Optimized postgres queries, cutting p95 latency 40% for the reporting service\n- Shipped via Docker containers and Jenkins CI/CD pipelines on AWS (EC2, RDS, S3)\n- Worked in Agile sprints with Jira-based backlog tracking; ran code review for 2 juniors\n- Education: B.Tech Computer Science Engineering",
+    "fpa-analyst": "Financial Planning & Analysis Analyst\nMeridian Group, Pune | 2022 - Present\n- Own rolling 12-month forecasting and budgeting models; built financial modeling for 5 business units\n- Run monthly variance analysis and own monthly financial reporting to the CFO office\n- Automated quarterly close in Excel (VBA macros), saving 3 person-days per cycle\n- Partnered with business heads on cost-optimization workstreams; delivered ₹15L annual saving\n- Tools: Advanced Excel (modeling, VBA), SAP, Power BI, basic SQL, data analysis\n- Education: B.Com, CMA (pursuing)"
   },
   "sampleJobs": {
     "ecommerce-analyst": "E-commerce Analyst\nCompany: RetailTech Solutions\nLocation: Pune (Hybrid)\nWe are looking for an E-commerce Analyst to join our team and help optimize our clients' online marketplace performance.\n\nRequirements:\n- Bachelor's degree in Business, Marketing, or related field (MBA preferred)\n- 2+ years experience in e-commerce operations or marketplace management\n- Proficiency in Excel for data analysis and reporting\n- Experience with Amazon Seller Central, Walmart Marketplace, or similar platforms\n- Knowledge of performance marketing (Meta Ads, Google Ads)\n- Strong analytical skills with ability to interpret data and make recommendations\n- Experience with SQL or Power BI is a plus\n- Excellent communication and presentation skills\n\nResponsibilities:\n- Analyze sales performance across multiple marketplaces\n- Create weekly/monthly performance reports for clients\n- Identify trends and opportunities for optimization\n- Assist with product listing optimization and compliance\n- Monitor competitor activity and pricing strategies\n- Support clients with advertising campaign analysis and optimization",
@@ -172,6 +174,37 @@ const ROLE_CATALOGUE = {
       'financial-analyst': { name: 'Financial Analyst', skills: ['excel', 'financial modeling', 'data analysis', 'reporting', 'budgeting', 'variance analysis'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor', preferred: 'master' } },
       'finance-operations-specialist': { name: 'Finance Operations Specialist', skills: ['bookkeeping', 'excel', 'reconciliation', 'invoicing', 'reporting', 'erp systems'], exp: { min: 1, preferred: 4 }, edu: { min: 'bachelor' } },
       'business-operations-analyst': { name: 'Business Operations Analyst', skills: ['data analysis', 'excel', 'process improvement', 'reporting', 'budget tracking', 'kpi tracking'], exp: { min: 1, preferred: 4 }, edu: { min: 'bachelor' } }
+    }
+  },
+  'finance-accounting': {
+    label: 'Finance, Accounting & Audit',
+    roles: {
+      'fpa-analyst': { name: 'FP&A Analyst', skills: ['excel', 'financial modeling', 'forecasting', 'variance analysis', 'data analysis'], exp: { min: 2, preferred: 4 }, edu: { min: 'bachelor', preferred: 'master' } },
+      'financial-controller': { name: 'Financial Controller', skills: ['financial reporting', 'excel', 'gaap', 'audit', 'sap', 'team leadership'], exp: { min: 5, preferred: 8 }, edu: { min: 'bachelor', preferred: 'master' } },
+      'internal-auditor': { name: 'Internal Auditor', skills: ['audit', 'risk management', 'compliance', 'excel', 'internal controls', 'reporting'], exp: { min: 3, preferred: 6 }, edu: { min: 'bachelor', preferred: 'master' } },
+      'treasury-analyst': { name: 'Treasury Analyst', skills: ['cash flow management', 'forex', 'excel', 'banking relationships', 'treasury systems', 'financial reporting'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'accountant': { name: 'Accountant', skills: ['bookkeeping', 'gst', 'reconciliation', 'excel', 'invoicing', 'financial reporting'], exp: { min: 1, preferred: 3 }, edu: { min: 'bachelor' } },
+      'finance-manager': { name: 'Finance Manager', skills: ['financial reporting', 'budget management', 'team leadership', 'excel', 'stakeholder management', 'internal audit'], exp: { min: 6, preferred: 10 }, edu: { min: 'bachelor', preferred: 'mba' } }
+    }
+  },
+  'it-software': {
+    label: 'IT & Software Engineering',
+    roles: {
+      'junior-sde': { name: 'Junior Software Engineer', skills: ['java', 'python', 'git', 'rest api', 'sql', 'agile'], exp: { min: 0, preferred: 2 }, edu: { min: 'bachelor' } },
+      'sde-java': { name: 'Software Engineer (Java)', skills: ['java', 'spring boot', 'microservices', 'sql', 'git', 'jira'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'sde-python': { name: 'Software Engineer (Python)', skills: ['python', 'flask', 'rest api', 'sql', 'git', 'django'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'frontend-developer': { name: 'Frontend Developer', skills: ['javascript', 'react', 'html', 'css', 'git', 'typescript'], exp: { min: 1, preferred: 3 }, edu: { min: 'bachelor' } },
+      'backend-developer': { name: 'Backend Developer', skills: ['java', 'python', 'rest api', 'sql', 'microservices', 'redis'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'fullstack-developer': { name: 'Full-Stack Developer', skills: ['javascript', 'react', 'node', 'sql', 'rest api', 'git'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'qa-engineer': { name: 'QA Engineer', skills: ['test automation', 'selenium', 'jira', 'bug tracking', 'api testing', 'test case design'], exp: { min: 1, preferred: 3 }, edu: { min: 'bachelor' } },
+      'test-automation-engineer': { name: 'Test Automation Engineer', skills: ['test automation', 'selenium', 'java', 'python', 'ci/cd', 'jira'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'devops-engineer': { name: 'DevOps Engineer', skills: ['aws', 'docker', 'kubernetes', 'ci/cd', 'jenkins', 'linux'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'cloud-engineer': { name: 'Cloud Engineer', skills: ['aws', 'azure', 'docker', 'kubernetes', 'python', 'linux'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'data-engineer': { name: 'Data Engineer', skills: ['python', 'sql', 'etl', 'apache airflow', 'data pipelines', 'aws'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'ml-engineer': { name: 'Machine Learning Engineer', skills: ['python', 'machine learning', 'data analysis', 'sql', 'deep learning', 'docker'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'cybersecurity-analyst': { name: 'Cybersecurity Analyst', skills: ['network security', 'siem', 'threat detection', 'incident response', 'penetration testing', 'compliance'], exp: { min: 1, preferred: 4 }, edu: { min: 'bachelor' } },
+      'system-administrator': { name: 'System Administrator', skills: ['windows server', 'active directory', 'networking', 'linux', 'monitoring', 'troubleshooting'], exp: { min: 1, preferred: 4 }, edu: { min: 'bachelor' } },
+      'technical-lead': { name: 'Technical Lead / IT Manager', skills: ['project management', 'agile', 'team leadership', 'system design', 'stakeholder management', 'code review'], exp: { min: 5, preferred: 9 }, edu: { min: 'bachelor' } }
     }
   },
   'project-management': {
@@ -474,14 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const discoveryResumeStatus = document.getElementById('discoveryResumeStatus');
   const discoveryResults = document.getElementById('discoveryResults');
   const resumeInputMessage = document.getElementById('resumeInputMessage');
-const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
-  const discRoleFilter = document.getElementById('discRoleFilter');
-  const discLocationFilter = document.getElementById('discLocationFilter');
-  const discSalaryMin = document.getElementById('discSalaryMin');
-  const discSalaryMax = document.getElementById('discSalaryMax');
-  const discExperience = document.getElementById('discExperience');
   const discoveryClearProfileBtn = document.getElementById('discoveryClearProfileBtn');
-  const salaryInfo = document.getElementById('salaryInfo');
   const jobInputMessage = document.getElementById('jobInputMessage');
 
   // Application Tracker element references (previously relied on implicit
@@ -722,15 +748,12 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
         }
       }
 
-      console.log('[Analyze Resume] About to call saveResumeProfile');
       saveResumeProfile(resumeData);
-      console.log('[Analyze Resume] After saveResumeProfile');
-      console.log('[Analyze Resume] About to call updateResumeAnalysisUI');
       updateResumeAnalysisUI();
-      console.log('[Analyze Resume] After updateResumeAnalysisUI');
-      console.log('[Analyze Resume] About to call renderDiscoveryRecommendations');
-      renderDiscoveryRecommendations();
-      console.log('[Analyze Resume] After renderDiscoveryRecommendations');
+      // A fresh resume profile changes who we're matching: drop any targets
+      // that were auto-picked for a previous profile (user choices survive).
+      discPruneStaleAutoTargets();
+      renderDiscoveryUI();
       // Show results panels after analysis
       console.log('[Analyze Resume] Before removing d-none: resumeResultsCard d-none:', document.getElementById('resumeResultsCard')?.classList.contains('d-none'));
       console.log('[Analyze Resume] Before removing d-none: careerFitCard d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
@@ -1507,10 +1530,12 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       saveResumeProfile(parsed);
       localStorage.removeItem('discoveryResumeProfile');
       discoveryResumeStatus.innerHTML =
-        '<p class="text-success">Resume profile saved — this is the same profile used by Resume Analysis, Match, and Discovery features.</p>';
+        '<p class="text-success">Resume profile saved — same profile used by Resume Analysis, Match, and Discovery.</p>';
 
-      // Refresh the resume-based role recommendations, then build search links.
-      renderDiscoveryRecommendations();
+      // The resume now drives Discovery: drop stale auto-targets, refresh
+      // recommendations, and build personalized search links immediately.
+      discPruneStaleAutoTargets();
+      renderDiscoveryUI();
       findRelevantJobs();
     } catch (error) {
       discoveryResumeStatus.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
@@ -1519,41 +1544,15 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
   });
 
   clearFiltersBtn.addEventListener('click', () => {
-    discRoleFilter.value = '';
-    discLocationFilter.value = '';
-    discSalaryMin.value = '';
-    discSalaryMax.value = '';
-    discExperience.value = '';
-
-    if (discoveryModeSwitch.checked) {
-      findLiveVacancies();
-    } else {
-      findRelevantJobs();
-    }
+    document.getElementById('discLocationFilter').value = '';
+    document.getElementById('discSalaryMin').value = '';
+    document.getElementById('discSalaryMax').value = '';
+    document.getElementById('discExperience').value = '';
+    findRelevantJobs();
   });
 
   findJobsBtn.addEventListener('click', () => {
-    if (discoveryModeSwitch.checked) {
-      findLiveVacancies();
-    } else {
-      findRelevantJobs();
-    }
-  });
-
-  discoveryModeSwitch.addEventListener('change', () => {
-    if (discoveryModeSwitch.checked) {
-      document.querySelector('[for="discoveryModeSwitch"] .ms-2').textContent = 'Show the live-listings placeholder (unchecked = job-board search)';
-      // Search with live vacancies when switched to live mode
-      if (getDiscoveryProfile()) {
-        findLiveVacancies();
-      }
-    } else {
-      document.querySelector('[for="discoveryModeSwitch"] .ms-2').textContent = 'Show job-board search (unchecked = live-listings placeholder)';
-      // Search with job boards when switched to job-board mode
-      if (getDiscoveryProfile()) {
-        findRelevantJobs();
-      }
-    }
+    findRelevantJobs();
   });
 
   // Helper function to format experience years
@@ -1659,6 +1658,9 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
     const discStatus = document.getElementById('discoveryResumeStatus');
     if (discStatus) discStatus.innerHTML = '<p class="text-muted">No resume profile loaded</p>';
+    discTargets = new Set(); discCustomRole = '';
+    discTargetsSave();
+    renderDiscoveryUI();
   }
 
   // Show/hide the saved-profile banner (restore / clear / summary)
@@ -2412,79 +2414,17 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       return;
     }
 
-    // Each role carries min/preferred tiers so that different roles produce
-    // different experience and education matches instead of a flat 100%.
-    const roleProfiles = {
-      'ecommerce-operations-specialist': {
-        name: 'E-commerce Operations Specialist',
-        keySkills: ['amazon', 'excel', 'stakeholder management', 'quality assurance', 'data analysis', 'shopify'],
-        experience: { min: 1, preferred: 3 },
-        education: { min: 'bachelor' }
-      },
-      'marketplace-analyst': {
-        name: 'Marketplace Analyst',
-        keySkills: ['amazon', 'excel', 'data analysis', 'google analytics', 'shopify', 'reporting'],
-        experience: { min: 2, preferred: 4 },
-        education: { min: 'bachelor' }
-      },
-      'ecommerce-analyst': {
-        name: 'E-commerce Analyst',
-        keySkills: ['amazon', 'excel', 'data analysis', 'google analytics', 'reporting', 'kpi tracking'],
-        experience: { min: 2, preferred: 4 },
-        education: { min: 'bachelor' }
-      },
-      'business-analyst': {
-        name: 'Business Analyst',
-        keySkills: ['excel', 'data analysis', 'sql', 'stakeholder management', 'process improvement', 'jira'],
-        experience: { min: 2, preferred: 5 },
-        education: { min: 'bachelor', preferred: 'master' }
-      },
-      'operations-analyst': {
-        name: 'Operations Analyst',
-        keySkills: ['excel', 'data analysis', 'process improvement', 'quality assurance', 'project management', 'reporting'],
-        experience: { min: 2, preferred: 4 },
-        education: { min: 'bachelor' }
-      },
-      'marketing-analyst': {
-        name: 'Marketing Analyst',
-        keySkills: ['google analytics', 'meta ads', 'google ads', 'excel', 'data analysis', 'reporting'],
-        experience: { min: 2, preferred: 4 },
-        education: { min: 'bachelor', preferred: 'mba' }
-      },
-      'performance-marketing-analyst': {
-        name: 'Performance Marketing Analyst',
-        keySkills: ['meta ads', 'google ads', 'google analytics', 'excel', 'reporting', 'data analysis'],
-        experience: { min: 2, preferred: 5 },
-        education: { min: 'bachelor', preferred: 'mba' }
-      },
-      'marketing-analytics-analyst': {
-        name: 'Marketing Analytics Analyst',
-        keySkills: ['google analytics', 'meta ads', 'google ads', 'excel', 'data analysis', 'tableau', 'power bi'],
-        experience: { min: 3, preferred: 6 },
-        education: { min: 'bachelor', preferred: 'master in data' }
-      },
-      'ai-operations-analyst': {
-        name: 'AI Operations Analyst',
-        keySkills: ['excel', 'data analysis', 'python', 'process improvement', 'project management', 'reporting'],
-        experience: { min: 3, preferred: 6 },
-        education: { min: 'bachelor', preferred: 'master in computer science' }
-      },
-      'workflow-automation-analyst': {
-        name: 'Workflow Automation Analyst',
-        keySkills: ['excel', 'python', 'process improvement', 'project management', 'jira', 'google workspace'],
-        experience: { min: 2, preferred: 5 },
-        education: { min: 'bachelor' }
-      },
-      'junior-data-analyst': {
-        name: 'Junior Data Analyst',
-        keySkills: ['excel', 'sql', 'python', 'power bi', 'tableau', 'data analysis'],
-        experience: { min: 1, preferred: 3 },
-        education: { min: 'bachelor' }
-      }
+    // Read the target role from the single source of truth (ROLE_CATALOGUE).
+    // Each catalogue role carries skills / exp {min,preferred} / edu {min,preferred},
+    // mapped here onto the shape the match calculators expect.
+    const catRole = ALL_ROLES_FLAT[targetRoleSelect.value];
+    if (!catRole) return;
+    const role = {
+      name: catRole.name,
+      keySkills: catRole.skills || [],
+      experience: catRole.exp || { min: 0 },
+      education: catRole.edu || {}
     };
-
-    const role = roleProfiles[targetRoleSelect.value];
-    if (!role) return;
 
     const skillsMatch = calculateTargetRoleSkillsMatch(
   resumeData.skills,
@@ -2499,15 +2439,23 @@ const discoveryModeSwitch = document.getElementById('discoveryModeSwitch');
       role.education
     );
 
-    const yrsLabel = n => n + ' ' + (n === 1 ? 'yr' : 'yrs');
-    const eduLabel = tier =>
-      tier.toLowerCase() === 'mba' ? 'MBA' : tier.charAt(0).toUpperCase() + tier.slice(1);
-    const expNote = role.experience.preferred
-      ? `min ${yrsLabel(role.experience.min)} · preferred ${yrsLabel(role.experience.preferred)}`
-      : `min ${yrsLabel(role.experience.min)}`;
-    const eduNote = role.education.preferred
-      ? `${eduLabel(role.education.min)} required · ${eduLabel(role.education.preferred)} preferred`
-      : `${eduLabel(role.education.min)} required`;
+    const yrsLabel = n => (n == null ? '' : n + ' ' + (n === 1 ? 'yr' : 'yrs'));
+    const eduLabel = tier => {
+      if (!tier) return 'any degree';
+      return tier.toLowerCase() === 'mba' ? 'MBA' : tier.charAt(0).toUpperCase() + tier.slice(1);
+    };
+    const expMin = role.experience && role.experience.min;
+    const expNote = role.experience && role.experience.preferred
+      ? `min ${yrsLabel(expMin)} · preferred ${yrsLabel(role.experience.preferred)}`
+      : expMin
+        ? `min ${yrsLabel(expMin)}`
+        : 'no experience requirement';
+    const eduMin = role.education && role.education.min;
+    const eduNote = role.education && role.education.preferred
+      ? `${eduLabel(eduMin)} required · ${eduLabel(role.education.preferred)} preferred`
+      : eduMin
+        ? `${eduLabel(eduMin)} required`
+        : 'no education requirement';
 
     const score = Math.round(
       skillsMatch * 40 +
@@ -2927,19 +2875,36 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
   // ============================================================
   let discTargets = new Set();   // catalogue role keys the user chose to search
   let discCustomRole = '';        // free-text target title
+  // True when the current target set was filled by auto-pick (no explicit user
+  // choice yet). A newer resume profile should then drop the stale auto targets
+  // rather than keep searching the previous person's roles.
+  let discTargetsAuto = false;
 
   function discTargetsLoad() {
     try {
       const t = JSON.parse(localStorage.getItem('discTargets') || '[]');
       discTargets = new Set((Array.isArray(t) ? t : []).filter(k => ALL_ROLES_FLAT[k]));
       discCustomRole = localStorage.getItem('discCustomRole') || '';
-    } catch (e) { discTargets = new Set(); discCustomRole = ''; }
+      discTargetsAuto = localStorage.getItem('discTargetsAuto') === '1';
+    } catch (e) { discTargets = new Set(); discCustomRole = ''; discTargetsAuto = false; }
   }
   function discTargetsSave() {
     try {
       localStorage.setItem('discTargets', JSON.stringify([...discTargets]));
       localStorage.setItem('discCustomRole', discCustomRole);
+      localStorage.setItem('discTargetsAuto', discTargetsAuto ? '1' : '0');
     } catch (e) { /* non-persisting is fine */ }
+  }
+  // A new resume profile just arrived: if the targets were auto-picked for the
+  // previous profile, clear them so the user isn't silently searching roles
+  // that no longer fit. Explicit user choices always survive.
+  function discPruneStaleAutoTargets() {
+    if (discTargetsAuto) {
+      discTargets = new Set();
+      discTargetsAuto = false;
+      discCustomRole = '';
+      discTargetsSave();
+    }
   }
 
   // Rank every catalogue role against the discovery profile using ONLY evidence
@@ -2982,11 +2947,9 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
     return bits.join(' ');
   }
 
-  // Every role name the user is searching for: dropdown pick + toggles + custom.
+  // Every role title the user is searching for: chosen catalogue roles + custom.
   function discoveryTargetNames() {
     const names = [];
-    const dd = document.getElementById('discRoleFilter');
-    if (dd && dd.value && ALL_ROLES_FLAT[dd.value]) names.push(ALL_ROLES_FLAT[dd.value].name);
     discTargets.forEach(k => {
       const r = ALL_ROLES_FLAT[k];
       if (r && !names.includes(r.name)) names.push(r.name);
@@ -2995,34 +2958,19 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
     return names;
   }
 
-  function discoveryHasTargets() {
-    return discoveryTargetNames().length > 0;
-  }
-
-  // Send a recommended role into the Planner (respecting its 5-role limit).
-  function sendDiscoveryRoleToPlanner(key) {
-    const role = ALL_ROLES_FLAT[key];
-    if (!role) return;
-    if (plannerData.selectedRoles.length >= 5) {
-      alert('The Planner holds up to 5 roles. Remove one in the Planner tab, then send this role over.');
-      return;
-    }
-    if (!plannerData.selectedRoles.includes(key)) plannerData.selectedRoles.push(key);
-    savePlannerData();
-    // Ensure the planner has a resume to render against (it needs one to show
-    // its interface). If none is loaded in memory, restore the saved profile.
-    if (Object.keys(resumeData).length === 0) loadResumeProfileAndUpdateUI();
-    renderPlanner(false); // re-render from in-memory state (does not wipe the selection)
-    switchTab('plannerAnalysis');
-  }
-
-  // Repopulate the target-role dropdown from the full catalogue so discovery is
-  // not limited to a narrow analyst-only list.
+  // Fill the "browse any role" select from the full catalogue (data-driven,
+  // so new families appear here and in the Planner without touching markup).
   function repopulateDiscoveryRoleFilter() {
-    const dd = document.getElementById('discRoleFilter');
+    const dd = document.getElementById('discRoleBrowse');
     if (!dd) return;
-    const current = dd.value;
-    let html = '<option value="">All Roles</option>';
+    let html = '<option value="">Browse all ' + Object.keys(ALL_ROLES_FLAT).length + ' roles…</option>';
+    html += roleCatalogueOptionGroups();
+    dd.innerHTML = html;
+  }
+
+  // Shared: the full catalogue as <optgroup> blocks, grouped by career family.
+  function roleCatalogueOptionGroups() {
+    let html = '';
     Object.values(ROLE_CATALOGUE).forEach(fam => {
       html += '<optgroup label="' + escAttr(fam.label) + '">';
       Object.entries(fam.roles).forEach(([k, r]) => {
@@ -3030,216 +2978,309 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
       });
       html += '</optgroup>';
     });
-    dd.innerHTML = html;
+    return html;
+  }
+
+  // Match tab "Target Role" select — same single source of truth as Discovery,
+  // so every catalogue role (incl. finance & IT) is assessable there too.
+  function repopulateMatchRoleFilter() {
+    const dd = document.getElementById('targetRoleSelect');
+    if (!dd) return;
+    const current = dd.value;
+    dd.innerHTML = '<option value="">-- Select a target role --</option>' + roleCatalogueOptionGroups();
     if (current && ALL_ROLES_FLAT[current]) dd.value = current;
   }
 
-  // Render the "What kind of jobs are you looking for?" block: recommended
-  // roles (with reasons), a custom title, and the current search targets.
-  function renderDiscoveryRecommendations() {
-    const host = document.getElementById('discoveryRecommend');
-    if (!host) return;
-    const { recommendations, profile } = recommendDiscoveryRoles();
+  // Render the whole interactive Discovery UI: profile strip, the active
+  // target chips, resume-recommended role chips, and the target-input wiring.
+  // Re-entrantly safe — called after every state change (upload, clear, add, remove).
+  function renderDiscoveryUI() {
+    const profile = getDiscoveryProfile();
 
-    const customWrap = `
-      <div class="disc-custom">
-        <label class="form-label" for="discCustomRoleInput" style="font-size:.85rem">No match? Enter a custom target job title:</label>
-        <div class="input-group">
-          <input type="text" class="form-control" id="discCustomRoleInput" value="${escAttr(discCustomRole)}"
-                 placeholder="e.g., 'Growth Lead', 'Amazon Marketplace Manager'" maxlength="80">
-          <button class="btn btn-outline-secondary" id="discAddCustomBtn" type="button">Add</button>
-        </div>
-      </div>`;
-
-    const targetsWrap = renderDiscoveryTargetsHtml();
-
-    if (!profile) {
-      host.innerHTML = `
-        <div class="disc-rec">
-          <h6>What kind of jobs are you looking for?</h6>
-          <p class="text-muted" style="font-size:.85rem">Analyze a resume (or upload one above) and CareerAI will recommend target roles from your actual skills and experience. Until then you can still search any role or a custom title below — just not personalized.</p>
-          ${customWrap}
-          ${targetsWrap}
-        </div>`;
-      wireDiscoveryControls();
-      return;
+    // 1 · Profile strip
+    const info = document.getElementById('discProfileInfo');
+    if (info) {
+      if (profile) {
+        const provenance = resumeIsRestoredSaved() ? ' · restored from a previous session'
+          : (resumeSource && resumeSource === 'sample') ? ' · sample ' + (resumeSourceLabel || '')
+          : (resumeSourceLabel ? ' · from ' + resumeSourceLabel : '');
+        info.innerHTML = '<span class="disc-dot"></span><strong>Profile ready</strong> · '
+          + profile.skills.length + ' skills · ' + formatExperienceYears(profile.experience)
+          + provenance;
+      } else {
+        info.innerHTML = '<span class="disc-dot off"></span><strong>No resume profile yet</strong> — upload one here, '
+          + 'or analyze one on the Resume tab. Without a profile, role recommendations are off.';
+      }
     }
 
-    const recsHtml = recommendations.map(rec => {
-      const on = discTargets.has(rec.key);
-      const pct = Math.round(rec.coverage * 100);
-      return `
-        <div class="disc-rec-item ${on ? 'on' : ''}" data-key="${rec.key}">
-          <div class="disc-rec-top">
-            <button class="btn btn-sm ${on ? 'btn-primary' : 'btn-outline-primary'} disc-rec-toggle" data-key="${rec.key}" type="button">${on ? '✓ In search' : '+ Add to search'}</button>
-            <span class="disc-rec-name">${escAttr(rec.role.name)}</span>
-            <span class="disc-rec-family">${escAttr(rec.role.family)}</span>
-            <span class="disc-rec-pct" title="share of the role's key skills you already list">${pct}%</span>
-          </div>
-          <div class="disc-rec-why">${escAttr(discWhyLine(rec))}</div>
-          <button class="btn btn-sm btn-outline-secondary disc-send-planner" data-key="${rec.key}" type="button">Send to Planner</button>
-        </div>`;
-    }).join('');
+    // 2 · Recommended role chips (evidence-based, top 6 only — no noise)
+    const recHost = document.getElementById('discRecommended');
+    if (recHost) {
+      const { recommendations, profile: p } = recommendDiscoveryRoles(6);
+      if (p && recommendations.length) {
+        recHost.innerHTML = '<span class="disc-rec-label">For your profile:</span>' + recommendations.map(rec => {
+          const on = discTargets.has(rec.key);
+          const pct = Math.round(rec.coverage * 100);
+          return `<button class="disc-rec-chip ${on ? 'on' : ''}" data-key="${rec.key}" type="button"
+                     title="${escAttr(discWhyLine(rec))}">${on ? '✓ ' : ''}${escAttr(rec.role.name)}
+                     <span class="disc-rec-pct">${pct}%</span></button>`;
+        }).join('');
+      } else {
+        recHost.innerHTML = '';
+      }
+    }
 
-    host.innerHTML = `
-      <div class="disc-rec">
-        <h6>What kind of jobs are you looking for?</h6>
-        <p class="text-muted" style="font-size:.85rem">Suggested from your resume (${(profile.skills || []).length} skills, ${formatExperienceYears(profile.experience)} experience). Add the roles you want to search, or pick any role / a custom title. You can change these anytime — no need to re-upload.</p>
-        <div class="disc-rec-list">${recsHtml}</div>
-        ${customWrap}
-        ${targetsWrap}
-      </div>`;
+    // 3 · Active target chips
+    renderDiscoveryTargets();
+
     wireDiscoveryControls();
   }
 
-  function renderDiscoveryTargetsHtml() {
+  function renderDiscoveryTargets() {
+    const host = document.getElementById('discTargets');
+    if (!host) return;
     const names = discoveryTargetNames();
     if (names.length === 0) {
-      return '<div id="discTargets" class="disc-targets"><span class="text-muted" style="font-size:.8rem">No search targets yet — add a suggested role, pick one from the list, or enter a custom title.</span></div>';
+      host.innerHTML = '<span class="disc-hint">No targets yet — pick a suggested role, browse the catalogue, or add a custom title.</span>';
+      return;
     }
-    const chips = names.map(n =>
-      `<span class="disc-target-chip" data-name="${escAttr(n)}">${escAttr(n)} <button class="disc-target-x" data-name="${escAttr(n)}" type="button" aria-label="Remove">×</button></span>`
+    host.innerHTML = names.map(n =>
+      `<span class="disc-target-chip">${escAttr(n)} <button class="disc-target-x" data-name="${escAttr(n)}" type="button" aria-label="Remove ${escAttr(n)}">×</button></span>`
     ).join('');
-    return '<div id="discTargets" class="disc-targets"><span style="font-size:.8rem;font-weight:600">Your search targets:</span> ' + chips + '</div>';
   }
 
   function wireDiscoveryControls() {
-    document.querySelectorAll('.disc-rec-toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const k = btn.dataset.key;
+    // Rec chips + target-x are freshly-rendered nodes, so re-wiring each time
+    // is safe (old nodes are gone). The static controls below are wired ONCE.
+    document.querySelectorAll('.disc-rec-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const k = chip.dataset.key;
         if (discTargets.has(k)) discTargets.delete(k); else discTargets.add(k);
+        discTargetsAuto = false; // explicit user choice survives future resumes
         discTargetsSave();
-        renderDiscoveryRecommendations();
+        renderDiscoveryUI();
+        findRelevantJobs();
       });
     });
-    document.querySelectorAll('.disc-send-planner').forEach(btn => {
-      btn.addEventListener('click', () => sendDiscoveryRoleToPlanner(btn.dataset.key));
-    });
     const addCustom = document.getElementById('discAddCustomBtn');
-    if (addCustom) addCustom.addEventListener('click', () => {
-      const inp = document.getElementById('discCustomRoleInput');
-      discCustomRole = (inp && inp.value || '').trim();
-      discTargetsSave();
-      renderDiscoveryRecommendations();
-    });
+    if (addCustom && !addCustom.dataset.wired) {
+      addCustom.dataset.wired = '1';
+      addCustom.addEventListener('click', addCustomRoleTarget);
+    }
+    const customInput = document.getElementById('discCustomRoleInput');
+    if (customInput && !customInput.dataset.wired) {
+      customInput.dataset.wired = '1';
+      customInput.value = discCustomRole; // sync once; do not clobber on re-render
+      customInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addCustomRoleTarget(); }
+      });
+    }
+    const browse = document.getElementById('discRoleBrowse');
+    if (browse && !browse.dataset.wired) {
+      browse.dataset.wired = '1';
+      browse.addEventListener('change', () => {
+        if (browse.value && ALL_ROLES_FLAT[browse.value]) {
+          discTargets.add(browse.value);
+          discTargetsAuto = false;
+          discTargetsSave();
+          renderDiscoveryUI();
+          findRelevantJobs();
+        }
+        browse.value = '';
+      });
+    }
     document.querySelectorAll('.disc-target-x').forEach(x => {
       x.addEventListener('click', () => {
         const name = x.dataset.name;
         if (name === discCustomRole.trim()) { discCustomRole = ''; }
         else discTargets = new Set([...discTargets].filter(k => (ALL_ROLES_FLAT[k] || {}).name !== name));
+        discTargetsAuto = false;
         discTargetsSave();
-        renderDiscoveryRecommendations();
+        renderDiscoveryUI();
+        findRelevantJobs();
       });
     });
   }
 
-  // Find relevant jobs using job-board search mode. Uses every selected target
-  // role + the latest filters, and clearly labels the output as external links.
+  function addCustomRoleTarget() {
+    const inp = document.getElementById('discCustomRoleInput');
+    discCustomRole = (inp && inp.value || '').trim();
+    discTargetsAuto = false;
+    discTargetsSave();
+    renderDiscoveryUI();
+    findRelevantJobs();
+  }
+
+  // ------------------------------------------------------------
+  // Per-board search links.
+  // Job boards accept DIFFERENT filters in their URLs — we do not assume
+  // they all behave like Indeed. Each board below declares exactly what
+  // goes into its link, and the result cards say so out loud.
+  // Salary is never encoded anywhere: it is a page-level filter on all
+  // four boards, not a URL parameter.
+  // ------------------------------------------------------------
+  function discReadFilters() {
+    const location = document.getElementById('discLocationFilter').value || '';
+    const experience = Number(document.getElementById('discExperience').value) || 0;
+    const salaryMin = document.getElementById('discSalaryMin').value || '';
+    const salaryMax = document.getElementById('discSalaryMax').value || '';
+    return {
+      location, experience, remote: location === 'Remote',
+      salaryText: (salaryMin || salaryMax)
+        ? '₹' + (salaryMin || '0') + (salaryMax ? '–' + salaryMax : '+') + ' LPA'
+        : ''
+    };
+  }
+
+  // LinkedIn experience filter f_E: 1 = 0-1y, 2 = 1+, 3 = 2+, 4 = 3+, 5 = 5+
+  function discLinkedInExpParam(minYears) {
+    if (minYears >= 5) return '5';
+    if (minYears >= 3) return '4';
+    if (minYears >= 2) return '3';
+    if (minYears >= 1) return '2';
+    return '1';
+  }
+
+  const DISC_BOARDS = [
+    {
+      name: 'LinkedIn',
+      build(title, f) {
+        const p = new URLSearchParams();
+        p.set('keywords', title);
+        if (f.remote) p.set('f_WT', '2'); // remote work filter
+        else if (f.location) p.set('location', f.location + ', India');
+        if (f.experience) p.set('f_E', discLinkedInExpParam(f.experience));
+        return 'https://www.linkedin.com/jobs/search/?' + p.toString();
+      },
+      legend(f) {
+        const passed = ['keywords'];
+        if (f.remote) passed.push('remote work');
+        else if (f.location) passed.push('location (' + f.location + ')');
+        if (f.experience) passed.push('experience (' + f.experience + '+ yrs)');
+        return { passed, notPassed: f.salaryText ? ['salary ' + f.salaryText + ' (filter on the page)'] : [] };
+      }
+    },
+    {
+      name: 'Indeed',
+      build(title, f) {
+        const p = new URLSearchParams();
+        p.set('q', title);
+        p.set('sort', 'date'); // newest first — job search, not company search
+        if (f.remote) p.set('wtrm', 'on');
+        else if (f.location) p.set('l', f.location + ', India');
+        if (f.experience) p.set('sc', f.experience + ',40'); // min years, open top
+        return 'https://in.indeed.com/jobs?' + p.toString();
+      },
+      legend(f) {
+        const passed = ['keywords'];
+        if (f.remote) passed.push('remote only');
+        else if (f.location) passed.push('location (' + f.location + ')');
+        if (f.experience) passed.push('experience (' + f.experience + '+ yrs)');
+        return { passed, notPassed: f.salaryText ? ['salary ' + f.salaryText + ' (not an Indeed URL filter — apply on the page)'] : [] };
+      }
+    },
+    {
+      name: 'Naukri',
+      // Naukri has no location URL parameter: the city goes into the keyword
+      // text (its keyword field matches titles, skills and locations).
+      build(title, f) {
+        const p = new URLSearchParams();
+        const keyword = title + (f.remote ? ' remote' : (f.location ? ' ' + f.location : ''));
+        p.set('q', keyword);
+        p.set('key', keyword);
+        p.set('fcs', 'off');
+        if (f.experience) p.set('fexl', String(f.experience)); // min experience, years
+        return 'https://www.naukri.com/search?' + p.toString();
+      },
+      legend(f) {
+        const passed = ['keywords'];
+        if (f.remote || f.location) passed.push((f.remote ? 'remote' : f.location) + ' (folded into keywords)');
+        if (f.experience) passed.push('experience (' + f.experience + '+ yrs)');
+        return { passed, notPassed: f.salaryText ? ['salary ' + f.salaryText + ' (filter on the page)'] : [] };
+      }
+    },
+    {
+      name: 'Monster India',
+      // Only keyword + location are stable URL params here; experience and
+      // salary are page-level filters on Monster India.
+      build(title, f) {
+        const p = new URLSearchParams();
+        p.set('q', title);
+        if (f.location) p.set('location', f.location);
+        return 'https://www.monsterindia.com/jobs/search/?' + p.toString();
+      },
+      legend(f) {
+        const passed = ['keywords'];
+        if (f.location) passed.push('location (' + f.location + ')');
+        const skipped = [];
+        if (f.experience) skipped.push('experience (' + f.experience + '+ yrs)');
+        if (f.salaryText) skipped.push('salary ' + f.salaryText);
+        return { passed, notPassed: skipped.map(s => s + ' (filter on the page)') };
+      }
+    }
+  ];
+
+  // Build the per-board result cards. One link per target role; if there are
+  // more than 4 targets, a single "all roles" link instead of a wall of buttons.
   function findRelevantJobs() {
     const profile = getDiscoveryProfile();
 
-    const targetNames = discoveryTargetNames();
-    const location = discLocationFilter.value;
-    const salaryMin = discSalaryMin.value;
-    const salaryMax = discSalaryMax.value;
-    const experience = discExperience.value;
-
-    // No resume profile → still allow a manual/custom search, but say it plainly.
-    if (!profile) {
-      if (targetNames.length === 0) {
-        discoveryResults.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💼</div><p>Analyze your resume on the Resume tab (or upload one here) to build your profile and get role recommendations. Or add a target role above to run a non-personalized search.</p></div>';
-        return;
-      }
+    // The resume should do real work here: with a profile but no explicit
+    // targets, seed the search with the top recommendations.
+    let autoPicked = false;
+    if (discoveryTargetNames().length === 0 && profile) {
+      recommendDiscoveryRoles(3).recommendations.forEach(r => discTargets.add(r.key));
+      discTargetsAuto = true;
+      discTargetsSave();
+      autoPicked = true;
     }
+    const targetNames = discoveryTargetNames();
 
-    // Build a descriptive query from the selected target role NAMES + filters.
-    const queryParts = [];
-    if (targetNames.length) queryParts.push(targetNames.join(', '));
-    if (location) queryParts.push(location);
-    if (experience) queryParts.push(`${experience}+ years experience`);
-    // NOTE: salary is included only as a keyword hint; job boards don't reliably
-    // filter by it, so we never claim a salary filter was applied to results.
-    if (salaryMin) queryParts.push(`${salaryMin}LPA`);
-    if (salaryMax) queryParts.push(salaryMax + 'LPA');
-    const queryText = queryParts.join(', ');
-
-    // Helpful empty state: no roles AND no location → ask for a target.
-    if (queryText.trim() === '') {
-      discoveryResults.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔎</div><p>Add at least one target role above (a suggested role, a pick from the list, or a custom title) — optionally with a location — then search again.</p></div>';
+    if (targetNames.length === 0) {
+      discoveryResults.innerHTML =
+        '<div class="empty-state"><div class="empty-state-icon">🔎</div><p>Add a target role above — a suggested role, a catalogue pick, or a custom title — then click <strong>Build my search links</strong> again.</p></div>';
       return;
     }
 
-    const searchUrls = {
-      linkedin: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(queryText)}`,
-      indeed: `https://in.indeed.com/jobs?q=${encodeURIComponent(queryText)}`,
-      naukri: `https://www.naukri.com/search?txt=${encodeURIComponent(queryText)}`,
-      monster: `https://www.monsterindia.com/jobs/search/?q=${encodeURIComponent(queryText)}`
-    };
+    const f = discReadFilters();
+    const MAX_LINKS_PER_CARD = 4;
+    const shown = targetNames.slice(0, MAX_LINKS_PER_CARD);
+    const restCount = targetNames.length - shown.length;
 
-    const activeFilters = [];
-    if (targetNames.length) activeFilters.push('Roles: ' + targetNames.join(', '));
-    if (location) activeFilters.push('Location: ' + location);
-    if (salaryMin) activeFilters.push('Min salary: ₹' + salaryMin + ' LPA');
-    if (salaryMax) activeFilters.push('Max salary: ₹' + salaryMax + ' LPA');
-    if (experience) activeFilters.push('Min experience: ' + experience + ' yrs');
+    let cardsHtml = '<div class="disc-boards-grid">';
+    DISC_BOARDS.forEach(board => {
+      const legend = board.legend(f);
+      const links = shown.map(t =>
+        `<a class="disc-board-link" href="${board.build(t, f)}" target="_blank" rel="noopener noreferrer">${escAttr(t)}${f.location ? ' · ' + escAttr(f.location) : ''}</a>`
+      ).join('');
+      const allLink = restCount > 0
+        ? `<a class="disc-board-link muted" href="${board.build(targetNames.join(' '), f)}" target="_blank" rel="noopener noreferrer">All ${targetNames.length} roles together</a>`
+        : '';
+      cardsHtml += `
+        <div class="disc-board-card">
+          <div class="disc-board-head"><span class="disc-board-name">${board.name}</span></div>
+          <div class="disc-board-legend">
+            <span class="disc-legend-passed">${legend.passed.map(escAttr).join(' · ')}</span>
+            ${legend.notPassed.length ? `<span class="disc-legend-skip">${legend.notPassed.map(escAttr).join(' · ')}</span>` : ''}
+          </div>
+          <div class="disc-board-links">${links}${allLink}</div>
+        </div>`;
+    });
+    cardsHtml += '</div>';
 
-    let html = `<h6>Job-Board Search Links <span class="text-muted" style="font-weight:400;font-size:.75rem">(pre-filled external searches — open to see live listings)</span></h6>`;
-    if (activeFilters.length > 0) {
-      html += `<div class="mb-2" style="font-size:.8rem;color:var(--muted)">Search for: ${activeFilters.map(escAttr).join(' · ')}</div>`;
+    let html = '';
+    if (autoPicked) {
+      html += '<div class="alert alert-success disc-auto-note" style="font-size:.82rem"><strong>Auto-picked your top ' +
+        targetNames.length + ' role match' + (targetNames.length === 1 ? '' : 'es') + '</strong> from your resume (' +
+        (profile.skills.length) + ' skills, ' + formatExperienceYears(profile.experience) +
+        ') so the search is personalized — tune the targets above anytime.</div>';
     }
-    if (profile && targetNames.length) {
-      html += `<div class="alert alert-success mb-2" style="font-size:.82rem"><strong>Personalized:</strong> these targets were chosen for your profile (${(profile.skills||[]).length} skills, ${formatExperienceYears(profile.experience)} experience). ${resumeIsRestoredSaved() ? 'Your profile was restored from a previous session — open <a href="#" id="discResumeProv">Resume</a> to confirm it is the right one.' : ''}</div>`;
-    }
-    html += `<div class="row mb-3">`;
-    html += `<div class="col-md-3"><h6>LinkedIn</h6><a href="${searchUrls.linkedin}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Search</a></div>`;
-    html += `<div class="col-md-3"><h6>Indeed</h6><a href="${searchUrls.indeed}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Search</a></div>`;
-    html += `<div class="col-md-3"><h6>Naukri</h6><a href="${searchUrls.naukri}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Search</a></div>`;
-    html += `<div class="col-md-3"><h6>Monster</h6><a href="${searchUrls.monster}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">Search</a></div>`;
-    html += `</div>`;
-    html += `<div class="mt-3"><small class="text-muted">These are external job-board searches, not listings fetched by this app. No vacancies, salaries, or companies are invented here. When a role links you to a listing, you can copy its description into the <strong>Job Description</strong> tab to run a Match Analysis.</small></div>`;
+    html += cardsHtml;
+    html += '<div class="disc-results-foot">Pre-filled external searches, not listings fetched by this app. Open one, then copy any JD into the <strong>Job Description</strong> tab to run a Match Analysis.</div>';
 
     discoveryResults.innerHTML = html;
-    document.getElementById('discResumeProv')?.addEventListener('click', (e) => {
-      e.preventDefault(); switchTab('resumeAnalysis');
-    });
+    renderDiscoveryUI(); // reflect any auto-picked targets in the chips
   }
-
-  // Live-listings placeholder — deliberately honest: nothing here is fetched
-  function findLiveVacancies() {
-    const profile = getDiscoveryProfile();
-    if (!profile) {
-      discoveryResults.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💼</div><p>Analyze your resume on the Resume tab (or upload one here) to build your profile first</p></div>';
-      return;
-    }
-
-    discoveryResults.innerHTML = `
-      <div class="alert alert-info">
-        <h6>Live Vacancy Listings — not yet available</h6>
-        <p><strong>This mode shows no live data.</strong> It is a placeholder for a future, authorized job-API integration — no listings, salaries or companies shown here are fetched, curated or invented.</p>
-        <p>Use the <strong>job-board search mode</strong> (uncheck the switch) for pre-filled links to real, current postings.</p>
-        <p><small>Your saved profile:</small></p>
-        <ul>
-          <li>${profile.skills.length} skills identified</li>
-          <li>${formatExperienceYears(profile.experience)} of experience</li>
-          <li>${profile.education} educational qualification${profile.education === 1 ? '' : 's'}</li>
-        </ul>
-      </div>
-    `;
-  }
-
-  // Surely Remote integration function
-  function searchSurelyRemote() {
-    // Since the app doesn't have direct integration with Surely Remote's API,
-    // we'll use the job-board search mode with remote filter
-    discoveryModeSwitch.checked = false; // Switch to job-board mode
-    discLocationFilter.value = 'remote'; // Set location to remote
-    findRelevantJobs(); // Perform the search
-  }
-
-  // Attach the Surely Remote button event listener
-  document.getElementById('searchSurelyRemoteBtn')?.addEventListener('click', () => {
-    searchSurelyRemote();
-  });
 
   // Render applications list
   function renderApplicationsList() {
@@ -3323,10 +3364,11 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
     loadResumeProfileAndUpdateUI();
 
     // Job Discovery: restore saved search targets, expose the full role
-    // catalogue in the dropdown, and render resume-based role recommendations.
+    // catalogue in the browse select, and render the compact targets UI.
     discTargetsLoad();
     repopulateDiscoveryRoleFilter();
-    renderDiscoveryRecommendations();
+    repopulateMatchRoleFilter();
+    renderDiscoveryUI();
 
     // Render applications list
     renderApplicationsList();
@@ -3382,12 +3424,6 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
       }, 7000);
     }
 
-    // Set initial discovery mode switch label
-    if (discoveryModeSwitch.checked) {
-      document.querySelector('[for="discoveryModeSwitch"] .ms-2').textContent = 'Show the live-listings placeholder (unchecked = job-board search)';
-    } else {
-      document.querySelector('[for="discoveryModeSwitch"] .ms-2').textContent = 'Show job-board search (unchecked = live-listings placeholder)';
-    }
   }
 
   // Planner state: active category tab for the role search selector
@@ -3470,6 +3506,11 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
     // Load saved data
     if (reloadFromStorage) loadPlannerData();
+
+    // Ensure we have resume data to work with (load from localStorage if needed)
+    if (Object.keys(resumeData).length === 0) {
+      loadResumeProfileAndUpdateUI();
+    }
 
     // Get resume data for analysis
     const hasResumeData = Object.keys(resumeData).length > 0;
@@ -4584,17 +4625,29 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
         'project management', 'data analysis', 'market research', 'client relations',
         'strategic planning', 'process improvement', 'quality assurance', 'risk management',
         'stakeholder management', 'budget management', 'vendor management', 'team leadership',
-        'cross-functional collaboration', 'change management', 'performance management'
+        'cross-functional collaboration', 'change management', 'performance management',
+        'financial modeling', 'financial reporting', 'forecasting', 'variance analysis',
+        'budgeting', 'bookkeeping', 'reconciliation', 'audit', 'internal audit',
+        'internal controls', 'compliance', 'cash flow management', 'forex',
+        'banking relationships', 'treasury systems', 'invoicing', 'gst', 'tds',
+        'gaap', 'erp systems', 'agile', 'system design', 'code review',
+        'data pipelines', 'threat detection', 'incident response', 'penetration testing',
+        'test case design', 'bug tracking', 'api testing', 'test automation'
       ],
       technical: [
   'meta ads', 'google ads', 'google analytics', 'excel',
   'python', 'sql', 'tableau', 'power bi', 'r', 'sas',
+  'java', 'c++', 'c#', 'javascript', 'typescript', 'html', 'css',
+  'react', 'angular', 'vue', 'node', 'rest api', 'microservices',
+  'spring boot', 'django', 'flask', 'redis', 'mongodb', 'postgres',
   'machine learning', 'deep learning', 'nlp', 'computer vision',
-  'data mining', 'etl', 'data warehousing', 'big data',
-  'hadoop', 'spark', 'aws', 'azure', 'gcp', 'docker',
-  'kubernetes', 'jenkins', 'git', 'jira', 'confluence',
+  'data mining', 'etl', 'apache airflow', 'data warehousing', 'big data',
+  'hadoop', 'spark', 'aws', 'azure', 'gcp', 'docker', 'ci/cd', 'linux',
+  'kubernetes', 'jenkins', 'git', 'jira', 'confluence', 'selenium',
   'salesforce', 'hubspot', 'marketo', 'mailchimp',
-  'google workspace', 'microsoft office'
+  'google workspace', 'microsoft office',
+  'network security', 'siem', 'networking', 'monitoring', 'troubleshooting',
+  'windows server', 'active directory'
 ],
       marketplacePlatforms: [
   'amazon', 'walmart', 'target', 'ebay', 'tiktok', 'shopify',
@@ -4604,7 +4657,7 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
       tools: [
         'excel', 'powerpoint', 'word', 'outlook', 'google sheets', 'google docs',
         'google slides', 'gmail', 'notion', 'airtable', 'trello', 'asana', 'monday.com',
-        'slack', 'teams', 'zoom', 'webex', 'googletomeeting'
+        'slack', 'teams', 'zoom', 'webex', 'googletomeeting', 'sap'
       ],
       analytics: [
         'google analytics', 'adobe analytics', 'mixpanel', 'amplitude', 'heap',

@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-17T08:30:52.848Z",
+        "reason": "verified false positive (Claude, measured in browser): real text is light-on-dark ~18:1; the detector mis-pairs a bg/accent-ink token value against a surface token. No element renders low-contrast."
+      },
+      {
+        "rule": "marquee",
+        "value": "*",
+        "files": [
+          "style.css"
+        ],
+        "createdAt": "2026-10-18T00:32:00.769Z",
+        "reason": "Agent: hero 'shine' is a documented signature motion (Signature moving pieces), decorative sheen not auto-scrolling content"
+      },
+      {
+        "rule": "marquee",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-18T00:34:17.927Z",
+        "reason": "Agent: hero 'shine' is a documented signature motion, decorative sheen not auto-scrolling content"
+      }
+    ]
+  }
+}

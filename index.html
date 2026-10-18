@@ -62,12 +62,12 @@
             <div class="tab-pane fade show active" id="resume-panel" role="tabpanel" aria-labelledby="resume-tab" tabindex="0">
                 <!-- Saved profile banner: restore / replace (via Analyze) / clear -->
                 <div class="card profile-banner mt-4 d-none" id="profileBanner">
-                    <div class="card-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-                        <div style="flex:1;min-width:220px">
-                            <h6 class="mb-1" style="font-size:.95rem">Saved profile (this device only)</h6>
-                            <p class="mb-0" id="profileBannerSummary" style="font-size:.8rem;color:var(--muted)"></p>
+                    <div class="card-body profile-banner-content">
+                        <div class="profile-banner-info">
+                            <h6 class="mb-1 profile-banner-title">Saved profile (this device only)</h6>
+                            <p class="mb-0 profile-banner-text" id="profileBannerSummary"></p>
                         </div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <div class="profile-banner-actions">
                             <button class="btn btn-outline-primary btn-sm" id="profileRestoreBtn" type="button">Restore into editor</button>
                             <button class="btn btn-outline-secondary btn-sm" id="profileClearBtn" type="button">Clear saved profile</button>
                         </div>
@@ -124,13 +124,15 @@
                                     <option value="sales-bde">Business Development Executive</option>
                                     <option value="project-coordinator">Project Coordinator</option>
                                 </optgroup>
-                                <optgroup label="Data & Technical">
+                                <optgroup label="Data, IT & Technical">
                                     <option value="data-analyst">Data Analyst</option>
                                     <option value="it-support">IT Support Specialist</option>
+                                    <option value="java-developer">Java Software Engineer</option>
                                 </optgroup>
                                 <optgroup label="People & Finance">
                                     <option value="hr-analyst">HR Analytics Specialist</option>
                                     <option value="finance-analyst">Financial Analyst</option>
+                                    <option value="fpa-analyst">FP&A Analyst</option>
                                     <option value="customer-success">Customer Success Manager</option>
                                 </optgroup>
                             </select>
@@ -193,19 +195,9 @@
 
                         <div class="fit-role-selector">
                             <label class="fit-role-label" for="targetRoleSelect">Target Role</label>
+                            <!-- Populated at init from ROLE_CATALOGUE (repopulateMatchRoleFilter). -->
                             <select class="form-select" id="targetRoleSelect">
                                 <option value="">-- Select a target role --</option>
-                                <option value="ecommerce-operations-specialist">E-commerce Operations Specialist</option>
-                                <option value="marketplace-analyst">Marketplace Analyst</option>
-                                <option value="ecommerce-analyst">E-commerce Analyst</option>
-                                <option value="business-analyst">Business Analyst</option>
-                                <option value="operations-analyst">Operations Analyst</option>
-                                <option value="marketing-analyst">Marketing Analyst</option>
-                                <option value="performance-marketing-analyst">Performance Marketing Analyst</option>
-                                <option value="marketing-analytics-analyst">Marketing Analytics Analyst</option>
-                                <option value="ai-operations-analyst">AI Operations Analyst</option>
-                                <option value="workflow-automation-analyst">Workflow Automation Analyst</option>
-                                <option value="junior-data-analyst">Junior Data Analyst</option>
                             </select>
                         </div>
 
@@ -384,129 +376,108 @@
                         <h5 class="mb-0">Find Real Job Opportunities</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Resume Upload Section -->
-                        <div class="mb-4">
-                            <h6>Your Resume Profile</h6>
-                            <div class="row g-3">
-                                <div class="col-md-8">
-                                    <input type="file" class="form-control" id="discoveryResumeUpload" accept=".txt,.pdf,.doc,.docx">
-                                    <small class="text-muted">Upload resume (TXT, PDF, DOCX) to extract text and build your profile</small>
+                        <!-- 1 · Resume profile strip: compact status + replace/clear -->
+                        <div class="disc-profile mb-4" id="discProfileBar">
+                            <div class="disc-profile-info" id="discProfileInfo"></div>
+                            <div class="disc-profile-actions">
+                                <label class="btn btn-outline-secondary btn-sm" for="discoveryResumeUpload">
+                                    Replace resume
+                                    <input type="file" id="discoveryResumeUpload" class="d-none" accept=".txt,.pdf,.doc,.docx">
+                                </label>
+                                <button class="btn btn-outline-secondary btn-sm" id="discoveryClearProfileBtn" type="button">
+                                    Clear
+                                </button>
+                            </div>
+                            <div id="discoveryResumeStatus" class="w-100"></div>
+                        </div>
+
+                        <!-- 2 · Search targets: active chips + resume-recommended chips + browse/custom -->
+                        <div class="disc-block mb-4">
+                            <h6 class="disc-block-title">Searching for</h6>
+                            <div id="discTargets" class="disc-targets mb-3"></div>
+                            <div id="discRecommended" class="disc-rec-row mb-3"></div>
+                            <div class="row g-2 disc-pick-row">
+                                <div class="col-md-5">
+                                    <label for="discRoleBrowse" class="form-label" style="font-size:.78rem">Add any role from the catalogue</label>
+                                    <select class="form-select form-select-sm" id="discRoleBrowse">
+                                        <option value="">Browse all roles…</option>
+                                    </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <button class="btn btn-outline-primary w-100" id="discoveryClearProfileBtn">
-                                        Clear Profile
-                                    </button>
+                                <div class="col-md-7">
+                                    <label for="discCustomRoleInput" class="form-label" style="font-size:.78rem">Or a custom title not in the list</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control form-control-sm" id="discCustomRoleInput"
+                                               placeholder="e.g., 'Growth Lead', 'FP&A Lead'" maxlength="80">
+                                        <button class="btn btn-outline-secondary btn-sm" id="discAddCustomBtn" type="button">Add</button>
+                                    </div>
                                 </div>
                             </div>
-                            <div id="discoveryResumeStatus" class="mt-2"></div>
                         </div>
 
-                        <!-- Resume-based target roles + recommendations (populated by JS) -->
-                        <div id="discoveryRecommend" class="mb-4"></div>
-
-                        <!-- Info Section -->
-                        <div class="alert alert-info mb-4">
-                            <h6>What this tool does:</h6>
-                            <p class="mb-0">Two clearly-labelled modes, no surprises:</p>
-                            <ul class="mb-0">
-                                <li><strong>Personalized target roles</strong>: above, CareerAI suggests roles from the skills &amp; experience actually on your resume, and explains why each fits. Add the roles you want to search (or a custom title), then use the filters and "Get Job-Board Search Links".</li>
-                                <li><strong>Job-board search</strong>: pre-filled <em>external</em> links into LinkedIn, Indeed, Naukri and Monster built from your chosen target roles + filters. These are <em>links you open</em>, not listings fetched by this app.</li>
-                                <li><strong>Live listings — not available yet</strong>: an explicit placeholder. No vacancies, salaries or companies are invented or implied. A real listing source would need an authorized job API; none is wired in yet.</li>
-                            </ul>
-                            <div class="mb-3">
-                                <label class="form-switch form-switch-lg" for="discoveryModeSwitch">
-    <input type="checkbox" id="discoveryModeSwitch">
-    <span class="ms-2">Show the live-listings placeholder (unchecked = job-board search)</span>
-</label>
+                        <!-- 3 · Filters -->
+                        <div class="disc-block mb-4">
+                            <h6 class="disc-block-title">Filters</h6>
+                            <div class="row g-3 align-items-end">
+                                <div class="col-6 col-md-3">
+                                    <label for="discLocationFilter" class="form-label" style="font-size:.78rem">Location</label>
+                                    <select class="form-select form-select-sm" id="discLocationFilter">
+                                        <option value="">Anywhere</option>
+                                        <option value="Pune">Pune</option>
+                                        <option value="Bengaluru">Bengaluru</option>
+                                        <option value="Mumbai">Mumbai</option>
+                                        <option value="Hyderabad">Hyderabad</option>
+                                        <option value="Remote">Remote</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label for="discExperience" class="form-label" style="font-size:.78rem">Min experience</label>
+                                    <select class="form-select form-select-sm" id="discExperience">
+                                        <option value="">Any</option>
+                                        <option value="1">1+ years</option>
+                                        <option value="2">2+ years</option>
+                                        <option value="3">3+ years</option>
+                                        <option value="5">5+ years</option>
+                                    </select>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <label for="discSalaryMin" class="form-label" style="font-size:.78rem">Salary (LPA)</label>
+                                    <div class="d-flex gap-1">
+                                        <input type="number" class="form-control form-control-sm" id="discSalaryMin" placeholder="Min" min="0" step="0.5" aria-label="Minimum salary LPA">
+                                        <input type="number" class="form-control form-control-sm" id="discSalaryMax" placeholder="Max" min="0" step="0.5" aria-label="Maximum salary LPA">
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <button class="btn btn-outline-secondary btn-sm w-100" id="clearFiltersBtn" type="button">Clear filters</button>
+                                </div>
                             </div>
+                            <small class="disc-hint">Salary is never put into board links — it is not a URL filter on LinkedIn, Indeed, Naukri or Monster. It is shown on each board card as a reminder to apply there.</small>
                         </div>
 
-                        <!-- Filters (kept for user customization) -->
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-3">
-                                <label for="discRoleFilter" class="form-label">Target Role</label>
-                                <select class="form-select" id="discRoleFilter">
-                                    <option value="">All Roles</option>
-                                    <option value="ecommerce-analyst">E-commerce Analyst</option>
-                                    <option value="marketplace-analyst">Marketplace Analyst</option>
-                                    <option value="business-analyst">Business Analyst</option>
-                                    <option value="operations-analyst">Operations Analyst</option>
-                                    <option value="marketing-analyst">Marketing Analytics</option>
-                                    <option value="performance-marketing-analyst">Performance Marketing Analyst</option>
-                                    <option value="ai-operations-analyst">AI Operations Analyst</option>
-                                    <option value="workflow-automation-analyst">Workflow Automation Analyst</option>
-                                    <option value="junior-data-analyst">Junior Data Analyst</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="discLocationFilter" class="form-label">Location</label>
-                                <select class="form-select" id="discLocationFilter">
-                                    <option value="">All Locations</option>
-                                    <option value="pune">Pune</option>
-                                    <option value="bengaluru">Bengaluru</option>
-                                    <option value="mumbai">Mumbai</option>
-                                    <option value="hyderabad">Hyderabad</option>
-                                    <option value="remote">Remote</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <label for="discSalaryMin" class="form-label">Min Salary (LPA)</label>
-                                <input type="number" class="form-control" id="discSalaryMin" placeholder="e.g., 12" min="0" step="0.5">
-                            </div>
-                            <div class="col-md-2">
-                                <label for="discSalaryMax" class="form-label">Max Salary (LPA)</label>
-                                <input type="number" class="form-control" id="discSalaryMax" placeholder="e.g., 18" min="0" step="0.5">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="discExperience" class="form-label">Min Experience (Years)</label>
-                                <input type="number" class="form-control" id="discExperience" placeholder="e.g., 2" min="0" step="0.5">
-                            </div>
-                        </div>
-
-                        <!-- Clear Filters Button -->
-                        <div class="d-flex justify-content-center mb-2">
-                            <button class="btn btn-outline-secondary" id="clearFiltersBtn">
-                                Clear Filters
-                            </button>
-                        </div>
-
-                        <!-- Find Jobs Button -->
-                        <div class="d-flex justify-content-center mb-4">
+                        <!-- 4 · Build links -->
+                        <div class="text-center mb-4">
                             <button class="btn btn-primary btn-lg px-5" id="findJobsBtn">
-                                Get Job-Board Search Links
+                                Build my search links
                             </button>
                         </div>
 
-                        <!-- Current Salary Info (Private) -->
-                        <div class="alert alert-info mb-3" style="display: none;" id="salaryInfo">
-                            <small>Your current CTC: ₹9.8 LPA | Target: ₹12-15 LPA | Stretch: ₹15-18 LPA (private)</small>
-                        </div>
-
-                        <!-- Results Container -->
+                        <!-- 5 · Results: one card per board with the exact query that link runs -->
                         <div id="discoveryResults">
                             <div class="empty-state">
                                 <div class="empty-state-icon">💼</div>
-                                <p>Click "Find Relevant Jobs" to discover real job opportunities based on your profile</p>
+                                <p>Add a role above (or upload a resume) and click <strong>Build my search links</strong>. Each board card shows exactly which filters its link carries — boards do <em>not</em> all accept the same filters.</p>
                             </div>
                         </div>
 
-                        <!-- Surely Remote Integration -->
-                        <div class="mt-4 pt-3 border-top">
-                            <h6>Surely Remote Integration</h6>
-                            <p class="text-muted">
-                                Surely Remote is a specialized job board for remote work opportunities.
-                                While this application doesn't have direct integration with Surely Remote's API,
-                                you can use the job-board search mode above to find remote positions.
-                            </p>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-                                <a href="https://www.surelyremote.com/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">
-                                    Browse Jobs on Surely Remote
-                                </a>
-                                <button class="btn btn-outline-secondary" id="searchSurelyRemoteBtn">
-                                    Search Surely Remote via Job Boards
-                                </button>
-                            </div>
-                        </div>
+                        <!-- 6 · How this works (read once, collapsed) -->
+                        <details class="disc-about mt-4">
+                            <summary>How this works — read this once</summary>
+                            <ul class="mb-2">
+                                <li>These are <strong>pre-filled external searches</strong>, not listings fetched by this app. No vacancies, salaries or companies are invented — open a link to see live postings, then copy a JD into the <strong>Job Description</strong> tab to run a Match Analysis.</li>
+                                <li>Boards handle filters differently: each card below the results shows exactly what its links pass (keywords, location, experience) and what they don't. Salary is a page-level filter only — apply it after opening the board.</li>
+                                <li>Live, aggregated listings are <strong>not wired in yet</strong>. A real listing source would need an authorized job API; none is integrated, and nothing here simulates one.</li>
+                                <li>Also worth knowing: <a href="https://www.surelyremote.com/" target="_blank" rel="noopener noreferrer">Surely Remote</a> is a specialist board for remote roles — set the location filter to <em>Remote</em> and open any of the board links, or browse Surely Remote directly.</li>
+                            </ul>
+                        </details>
                     </div>
                 </div>
             </div>

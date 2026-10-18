@@ -1,0 +1,21 @@
+{
+  "name": "ai-job-search",
+  "version": "1.0.0",
+  "description": "A client-side tool for analyzing your resume, job descriptions, and how well they match — all in the browser, with no backend and no data leaving your machine.",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Payod31/ai-career-job-assistant.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Payod31/ai-career-job-assistant/issues"
+  },
+  "homepage": "https://github.com/Payod31/ai-career-job-assistant#readme"
+}

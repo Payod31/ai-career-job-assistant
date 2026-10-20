@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/Payod31/ai-career-job-assistant/issues"
   },
-  "homepage": "https://github.com/Payod31/ai-career-job-assistant#readme"
+  "homepage": "https://github.com/Payod31/ai-career-job-assistant#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "pdfjs-dist": "^6.4.299"
+  }
 }

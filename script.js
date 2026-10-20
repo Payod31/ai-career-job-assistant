@@ -1,5 +1,13 @@
 ﻿// Embedded sample data to avoid CORS issues when loading from file://
 // These are EXAMPLE resumes for testing — selecting one does NOT overwrite your saved profile
+
+// Bullet/list line detection. Resumes mark bullets with a surprising number
+// of characters (hyphens, stars, round bullets, middle dots, dashes,
+// numbered items) — the vitals meters (impact, verb power) only work when
+// every marker style is recognised.
+const BULLET_LINE_RE = /^(?:[-–—*•●○◦▪▫‣·]|\d+[.)])/;
+const BULLET_MARKER_STRIP_RE = /^(?:[-–—*•●○◦▪▫‣·]|\d+[.)])\s*/;
+
 const sampleData = {
   "sampleResumes": {
     "ecommerce-ops": "E-commerce Operations Specialist\nPattern Technologies India Pvt Ltd, Pune | 2022 - Present\n- Amazon product onboarding, Master ID creation, flat files, ASIN setup, catalog management, and listing compliance for 500+ SKUs monthly\n- Pattern PXM (Amplifi), digital asset management, A+ Content, Brand Stories, and Amazon Storefronts management\n- Listing suppression resolution, Amazon case management, promotions, Subscribe & Save, and Buy Box monitoring\n- Marketplace operations across Amazon, Walmart, Target, eBay, and TikTok Shop\n- Performance marketing: Meta Ads, Google Ads, Google Analytics, Excel, KPI reporting, and competitive analysis\n- Education: B.Tech Computer Science Engineering, MBA in Marketing\n- Previous data science internship: Python, data analysis, machine learning, NLP exposure\n- Automation projects: bulk image asset downloading, link-to-PDF conversion, Amazon Brand Store media extraction",
@@ -194,7 +202,7 @@ const ROLE_CATALOGUE = {
       'sde-java': { name: 'Software Engineer (Java)', skills: ['java', 'spring boot', 'microservices', 'sql', 'git', 'jira'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
       'sde-python': { name: 'Software Engineer (Python)', skills: ['python', 'flask', 'rest api', 'sql', 'git', 'django'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
       'frontend-developer': { name: 'Frontend Developer', skills: ['javascript', 'react', 'html', 'css', 'git', 'typescript'], exp: { min: 1, preferred: 3 }, edu: { min: 'bachelor' } },
-      'backend-developer': { name: 'Backend Developer', skills: ['java', 'python', 'rest api', 'sql', 'microservices', 'redis'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
+      'backend-developer': { name: 'Backend Developer', skills: ['java', 'python', 'kotlin', 'android', 'rest api', 'sql', 'microservices', 'redis'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
       'fullstack-developer': { name: 'Full-Stack Developer', skills: ['javascript', 'react', 'node', 'sql', 'rest api', 'git'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
       'qa-engineer': { name: 'QA Engineer', skills: ['test automation', 'selenium', 'jira', 'bug tracking', 'api testing', 'test case design'], exp: { min: 1, preferred: 3 }, edu: { min: 'bachelor' } },
       'test-automation-engineer': { name: 'Test Automation Engineer', skills: ['test automation', 'selenium', 'java', 'python', 'ci/cd', 'jira'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
@@ -202,7 +210,7 @@ const ROLE_CATALOGUE = {
       'cloud-engineer': { name: 'Cloud Engineer', skills: ['aws', 'azure', 'docker', 'kubernetes', 'python', 'linux'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
       'data-engineer': { name: 'Data Engineer', skills: ['python', 'sql', 'etl', 'apache airflow', 'data pipelines', 'aws'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
       'ml-engineer': { name: 'Machine Learning Engineer', skills: ['python', 'machine learning', 'data analysis', 'sql', 'deep learning', 'docker'], exp: { min: 2, preferred: 5 }, edu: { min: 'bachelor' } },
-      'cybersecurity-analyst': { name: 'Cybersecurity Analyst', skills: ['network security', 'siem', 'threat detection', 'incident response', 'penetration testing', 'compliance'], exp: { min: 1, preferred: 4 }, edu: { min: 'bachelor' } },
+      'cybersecurity-analyst': { name: 'Cybersecurity Analyst', skills: ['cybersecurity', 'vulnerability', 'network security', 'siem', 'threat detection', 'incident response', 'penetration testing', 'compliance'], exp: { min: 1, preferred: 4 }, edu: { min: 'bachelor' } },
       'system-administrator': { name: 'System Administrator', skills: ['windows server', 'active directory', 'networking', 'linux', 'monitoring', 'troubleshooting'], exp: { min: 1, preferred: 4 }, edu: { min: 'bachelor' } },
       'technical-lead': { name: 'Technical Lead / IT Manager', skills: ['project management', 'agile', 'team leadership', 'system design', 'stakeholder management', 'code review'], exp: { min: 5, preferred: 9 }, edu: { min: 'bachelor' } }
     }
@@ -492,6 +500,129 @@ document.addEventListener('DOMContentLoaded', () => {
   const resumeWeaknesses = document.getElementById('resume-weaknesses');
   const resumeSuggestions = document.getElementById('resume-suggestions');
   const resumeResults = document.getElementById('resumeResults');
+
+  // --- Vitals "fix these" suggestions: apply straight into the resume editor ---
+  // The analyze render fills vitalsCtx with the current Impact/Verb fix lists;
+  // one delegated click handler on #resumeResults drives the Apply/Copy
+  // buttons so re-rendering the results never orphans the listeners.
+  let vitalsCtx = null;
+  // The raw text of the last analyzed resume — what the AI coach sends.
+  let lastAnalyzedRaw = '';
+  function flashInputMessage(text) {
+    if (!resumeInputMessage) return;
+    resumeInputMessage.innerHTML = `<div class="alert alert-info mb-0">${text}</div>`;
+    clearTimeout(flashInputMessage._t);
+    flashInputMessage._t = setTimeout(() => { resumeInputMessage.innerHTML = ''; }, 6000);
+  }
+  function applyVitalsFix(kind, idx, btn) {
+    const fix = vitalsCtx && vitalsCtx[kind] && vitalsCtx[kind][idx];
+    if (!fix || !resumeInput) return;
+    const input = btn.closest('.rf-fix') && btn.closest('.rf-fix').querySelector('.rf-fix-input');
+    const text = (input && input.value.trim()) ? input.value.trim() : fix.suggested;
+    // Find the editor line this suggestion was built from (its first 5 words)
+    // and replace that whole line with marker + the (possibly edited) text.
+    const needle = fix.orig.split(/\s+/).slice(0, 5).join(' ');
+    const lines = resumeInput.value.split(/\r?\n/);
+    const hit = lines.findIndex(l => l.includes(needle));
+    if (hit >= 0) {
+      // Keep the editor line's own marker (AI-sourced fixes don't carry one).
+      const lineMarker = (lines[hit].match(BULLET_MARKER_STRIP_RE) || [''])[0];
+      lines[hit] = (lineMarker || fix.marker) + text;
+      resumeInput.value = lines.join('\n');
+      resumeInput.dispatchEvent(new Event('input', { bubbles: true }));
+      btn.textContent = 'Applied ✓';
+      btn.classList.add('is-applied');
+      if (input) input.classList.add('is-applied');
+      flashInputMessage('<strong>Bullet updated in the editor.</strong> Run Analyze again to watch the meter move.');
+    } else {
+      if (navigator.clipboard) navigator.clipboard.writeText(fix.marker + text).catch(() => {});
+      btn.textContent = 'Copied';
+      flashInputMessage(`Couldn't locate that bullet in the editor — the rewrite was <strong>copied</strong> instead. Paste it over the bullet, or edit the text above before applying.`);
+    }
+  }
+  function copyVitalsFix(kind, idx, btn) {
+    const fix = vitalsCtx && vitalsCtx[kind] && vitalsCtx[kind][idx];
+    if (!fix) return;
+    const input = btn.closest('.rf-fix') && btn.closest('.rf-fix').querySelector('.rf-fix-input');
+    const text = (input && input.value.trim()) ? input.value.trim() : fix.suggested;
+    if (navigator.clipboard) navigator.clipboard.writeText(fix.marker + text).catch(() => {});
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  }
+  // --- AI coach: full rewrites from the local node server.js /api/coach ---
+  // The static app works without it (the template fix lists above are the
+  // fallback); when server.js is running with ANTHROPIC_API_KEY, the model
+  // returns personalized rewrites of the weakest bullets and the same
+  // Apply/Copy machinery puts them into the editor.
+  function renderAiSuggestions(suggestions, notes, host) {
+    if (!host) return;
+    const ai = suggestions.map(s => ({ marker: '', orig: s.original, suggested: s.suggested }));
+    vitalsCtx = vitalsCtx ? Object.assign(vitalsCtx, { ai }) : { impact: [], verb: [], ai };
+    host.innerHTML = (notes ? `<p class="rf-ai-notes">${escAttr(notes)}</p>` : '') +
+      (ai.length
+        ? ai.map((f, i) => `
+          <div class="rf-fix">
+            <div class="rf-fix-orig">• “${escAttr(f.orig)}”</div>
+            <div class="rf-fix-row">
+              <input type="text" class="rf-fix-input" data-kind="ai" data-fix="${i}" value="${escAttr(f.suggested)}" aria-label="AI rewrite">
+              <button type="button" class="rf-fix-btn" data-kind="ai" data-apply-fix="${i}">Apply</button>
+              <button type="button" class="rf-fix-btn" data-kind="ai" data-copy-fix="${i}">Copy</button>
+            </div>
+          </div>`).join('')
+        : '<span class="text-muted">No rewrites came back — try again.</span>');
+  }
+  // Show which coach routes are live (free ones first) from the dev server.
+  async function refreshAiCoachProviders() {
+    const host = document.getElementById('aiCoachProviders');
+    if (!host) return;
+    try {
+      const data = await (await fetch('/api/coach/providers')).json();
+      const ready = (data.providers || []).filter(p => p.ready);
+      host.innerHTML = ready.length
+        ? '⚡ via ' + ready.slice(0, 2).map(p => escAttr(p.label + (p.free ? ' · free' : ''))).join(' / ')
+        : 'no route yet — ' + (ready.length ? '' : escAttr((data.providers || []).map(p => p.hint).join(' or ')));
+    } catch {
+      host.innerHTML = 'AI coach needs <code>node server.js</code> — free keys: Groq (console.groq.com) / Gemini (aistudio.google.com), or Ollama locally (no key, no cloud).';
+    }
+  }
+
+  async function runAiCoach() {
+    const raw = lastAnalyzedRaw;
+    const statusEl = document.getElementById('aiCoachStatus');
+    const btn = document.getElementById('aiCoachBtn');
+    const host = document.getElementById('aiCoachResults');
+    if (!raw) { if (statusEl) statusEl.textContent = 'Analyze your resume first.'; return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Thinking…'; }
+    if (statusEl) statusEl.textContent = '';
+    try {
+      const targetRole = (document.getElementById('targetRoleSelect') || {}).value || '';
+      const res = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeText: raw, targetRole })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || 'HTTP ' + res.status);
+      renderAiSuggestions(data.suggestions || [], data.notes || '', host);
+      const via = data.provider ? ' via ' + data.provider : '';
+      if (statusEl) statusEl.textContent =
+        (data.suggestions || []).length + ' rewrites ready' + via + ' — edit any line, then Apply or Copy.';
+    } catch (e) {
+      if (statusEl) statusEl.textContent =
+        'AI coach unavailable (' + e.message + '). The template suggestions above still work — ' +
+        'enable AI rewrites free with Groq/Gemini keys or Ollama, then run `node server.js`.';
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '✨ Get AI rewrites'; }
+    }
+  }
+  resumeResults.addEventListener('click', e => {
+    if (e.target.closest('#aiCoachBtn')) { runAiCoach(); return; }
+    const applyBtn = e.target.closest('[data-apply-fix]');
+    const copyBtn = e.target.closest('[data-copy-fix]');
+    if (applyBtn) applyVitalsFix(applyBtn.dataset.kind, +applyBtn.dataset.applyFix, applyBtn);
+    else if (copyBtn) copyVitalsFix(copyBtn.dataset.kind, +copyBtn.dataset.copyFix, copyBtn);
+  });
+
   const careerFitScore = document.getElementById('career-fit-score');
   const careerFitFeedback = document.getElementById('career-fit-feedback');
   const careerFitDetails = document.getElementById('career-fit-details');
@@ -737,6 +868,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[Analyze Resume] careerFitCard has d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
             document.getElementById('resumeResultsCard').classList.remove('d-none');
             document.getElementById('careerFitCard').classList.remove('d-none');
+            repopulateMatchRoleFilter(); // relevance-filter target roles for this resume
+            if (document.getElementById('targetRoleSelect')?.value) assessTargetRole(); // only a role the user explicitly chose
             console.log('[Analyze Resume] After removing d-none');
             resumeInputMessage.innerHTML =
               '<div class="alert alert-info mb-0"><strong>Sample analyzed for this session only.</strong> ' +
@@ -759,6 +892,8 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('[Analyze Resume] Before removing d-none: careerFitCard d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
       document.getElementById('resumeResultsCard').classList.remove('d-none');
       document.getElementById('careerFitCard').classList.remove('d-none');
+      repopulateMatchRoleFilter(); // relevance-filter target roles for this resume
+      if (document.getElementById('targetRoleSelect')?.value) assessTargetRole(); // only a role the user explicitly chose
       console.log('[Analyze Resume] After removing d-none: resumeResultsCard d-none:', document.getElementById('resumeResultsCard')?.classList.contains('d-none'));
       console.log('[Analyze Resume] After removing d-none: careerFitCard d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
 
@@ -772,6 +907,30 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('[Analyze Resume] resumeText empty');
       alert('Please enter your resume text');
     }
+  });
+
+  // Keep in-progress editor text refresh-safe: if the user is typing
+  // something different from the last analyzed profile, save it as a draft
+  // so an accidental refresh doesn't hand them the old text back.
+  let resumeDraftTimer = null;
+  resumeInput.addEventListener('input', () => {
+    clearTimeout(resumeDraftTimer);
+    resumeDraftTimer = setTimeout(() => {
+      const text = resumeInput.value;
+      const saved = getSavedResumeProfile();
+      const savedRaw = saved ? (saved.rawText || '') : '';
+      if (!text.trim()) {
+        // Editor emptied: nothing to keep — a refresh leaves the box empty and
+        // the saved profile (if any) is offered via "Restore into editor".
+        clearResumeDraft();
+        return;
+      }
+      if (text !== savedRaw) saveResumeDraft(text);
+      else clearResumeDraft();
+      // After a "Clear saved profile" the button was disabled — any new text
+      // makes Analyze usable again.
+      document.getElementById('analyzeResumeBtn').disabled = false;
+    }, 500);
   });
 
   // Sample resume selection handler
@@ -1578,7 +1737,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }));
     } catch (e) {
       console.error('Failed to save resume profile:', e);
+      return;
     }
+    // The editor now matches the profile again — no stale draft to keep.
+    clearResumeDraft();
+    // In-session notification only: the user just created/replaced a profile,
+    // so it's useful to tell them once. It does NOT re-appear on refresh.
+    showProfileBanner();
+  }
+
+  // --- Unanalyzed editor draft (separate from the saved/analyzed profile) ---
+  // The draft keeps text the user typed but hasn't analyzed yet, so an
+  // accidental refresh never silently swaps it back to the last saved
+  // profile. Cleared whenever a profile is saved, the saved profile is
+  // restored into the editor, or the user manually clears storage.
+  const RESUME_DRAFT_KEY = 'resumeEditorDraft';
+  function saveResumeDraft(text) {
+    try {
+      const t = (text || '').trim();
+      if (t) localStorage.setItem(RESUME_DRAFT_KEY, t);
+      else localStorage.removeItem(RESUME_DRAFT_KEY);
+    } catch (e) { /* storage unavailable */ }
+  }
+  function loadResumeDraft() {
+    try { return localStorage.getItem(RESUME_DRAFT_KEY) || ''; } catch (e) { return ''; }
+  }
+  function clearResumeDraft() {
+    try { localStorage.removeItem(RESUME_DRAFT_KEY); } catch (e) { /* ignore */ }
   }
 
   // Load resume profile from localStorage
@@ -1641,6 +1826,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Clear the shared saved profile everywhere (editor re-save replaces it later)
   function clearSavedProfile() {
+    // A draft that is the SAME text as the profile being cleared is stale
+    // residue — it must go with it, or a refresh would bring the "cleared"
+    // profile back from the draft layer. A genuinely newer draft (different
+    // text the user was still working on) is kept.
+    const staleRaw = (getSavedResumeProfile() || {}).rawText || '';
+    const draftNow = loadResumeDraft();
+    if (!draftNow || draftNow === staleRaw) clearResumeDraft();
     localStorage.removeItem('resumeProfile');
     localStorage.removeItem('resumeProfileMeta');
     localStorage.removeItem('discoveryResumeProfile');
@@ -1658,6 +1850,19 @@ document.addEventListener('DOMContentLoaded', () => {
       '<div class="text-center py-4"><p class="text-muted">Analyze your resume to see specific career fit details.</p></div>';
     const discStatus = document.getElementById('discoveryResumeStatus');
     if (discStatus) discStatus.innerHTML = '<p class="text-muted">No resume profile loaded</p>';
+    repopulateMatchRoleFilter(); // no resume in memory → back to the full catalogue
+    if (typeof targetRoleSelect !== 'undefined' && targetRoleSelect) targetRoleSelect.value = '';
+    const roleSearchEl = document.getElementById('targetRoleSearch');
+    if (roleSearchEl) roleSearchEl.value = '';
+    // An explicit clear is a clean slate: empty the editor and disable Analyze
+    // until new text is provided (a kept NEWER draft survives in storage and
+    // reappears on refresh if the user had one).
+    const inputEl = document.getElementById('resumeInput');
+    if (inputEl) {
+      inputEl.value = '';
+      inputEl.disabled = false;
+      document.getElementById('analyzeResumeBtn').disabled = true;
+    }
     discTargets = new Set(); discCustomRole = '';
     discTargetsSave();
     renderDiscoveryUI();
@@ -1691,13 +1896,14 @@ document.addEventListener('DOMContentLoaded', () => {
           : 'The source text was not stored — paste your resume and click <strong>Analyze Resume</strong> to replace the profile.') +
         `</div>`;
       inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      clearResumeDraft(); // explicit restore wins over any pending draft
     };
 
     const clearBtn = document.getElementById('profileClearBtn');
     if (clearBtn) clearBtn.onclick = () => {
       clearSavedProfile();
       const msg = document.getElementById('resumeInputMessage');
-      if (msg) msg.innerHTML = '<div class="alert alert-success mb-0">Saved profile cleared from this device. Analyzing a resume saves a fresh one.</div>';
+      if (msg) msg.innerHTML = '<div class="alert alert-success mb-0">Saved profile cleared from this device — it will not come back on refresh. If you had unsaved draft text, it\'s still there. Analyzing a resume saves a fresh profile.</div>';
     };
   }
 
@@ -1716,7 +1922,35 @@ document.addEventListener('DOMContentLoaded', () => {
       resumeSourceLabel = (meta && meta.label) ? meta.label : '';
       analyzedResumeSig = inputSig(saved.rawText || '');
     }
-    showProfileBanner();
+    // What lands in the editor on a refresh:
+    //  · an unanalyzed DRAFT (your own work-in-progress) is restored — that's
+    //    "where you left it";
+    //  · a SAVED PROFILE is NOT re-filled silently: the editor stays empty and
+    //    the profile banner offers "Restore into editor", so pasting a new
+    //    resume and restoring the old one are both the user's choice.
+    const inputEl = document.getElementById('resumeInput');
+    const note = document.getElementById('resumeInputMessage');
+    const raw = saved ? (saved.rawText || '') : '';
+    const draft = loadResumeDraft();
+    if (inputEl && !inputEl.value.trim()) {
+      if (draft) {
+        inputEl.value = draft;
+        note.innerHTML =
+          '<div class="text-muted" style="font-size:.85rem">Your unanalyzed draft is back — exactly where you left it. ' +
+          'Click <strong>Analyze Resume</strong> to make it your profile, or paste a new resume to replace it.</div>';
+        inputEl.disabled = false;
+        document.getElementById('analyzeResumeBtn').disabled = false;
+      } else if (raw) {
+        note.innerHTML =
+          '<div class="text-muted" style="font-size:.85rem">A saved profile is on this device — click <strong>Restore into editor</strong> to bring it back, or paste a new resume directly.</div>';
+        inputEl.disabled = false;
+        document.getElementById('analyzeResumeBtn').disabled = false;
+        showProfileBanner(); // "Restore into editor" / "Clear saved profile"
+      }
+    }
+    // No banner on startup: a saved profile should not nag the user on every
+    // refresh. The banner is shown only when a profile is saved in THIS
+    // session (see saveResumeProfile), or when the user restores one.
   }
 
   // Update resume analysis UI
@@ -1758,10 +1992,32 @@ document.addEventListener('DOMContentLoaded', () => {
       : `<span class="text-muted" style="font-size:0.85rem">Not detected</span>`;
 
     // --- Vitals: what a recruiter actually scans for ---
-    const bullets = (resumeData.rawText || '')
+    // One-line pastes use " / " or " · " as separators — split those into
+    // lines. SPACE-only around the separator, deliberately: "\n· " must keep
+    // its leading bullet marker, or real bullets lose their "·" prefix.
+    const rawText0 = resumeData.rawText || '';
+    const bulletLines = rawText0
+      .replace(/ +\/ +/g, '\n')
+      .replace(/ +· +/g, '\n')
+      .replace(/ +• +/g, '\n')
       .split(/\r?\n/)
       .map(line => line.trim())
-      .filter(line => /^(?:[-•●*]|\d+[.)])/.test(line));
+      .filter(Boolean);
+    let bullets = bulletLines.filter(line => BULLET_LINE_RE.test(line));
+    // One-line pastes carry no explicit bullet markers: the phrases between
+    // the "•"/"·" separators ARE the bullets. Skip sections that are clearly
+    // headers (EDUCATION / SKILLS / …) so the meter only counts real bullets.
+    if (bullets.length === 0 && (rawText0.match(/\n/g) || []).length < 3) {
+      const segments = (/ +[•·] +/.test(rawText0)
+        ? rawText0.replace(/ +[•·] +/g, '\n')
+        : bulletLines.join('\n'))
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(Boolean);
+      bullets = segments.filter(l =>
+        l.split(/\s+/).length >= 3 && l.length >= 12 &&
+        !/\b(EDUCATION|EXPERIENCE|SKILLS|SUMMARY|OBJECTIVE|PROJECTS)\b/.test(l));
+    }
     const quantified = bullets.filter(line => /\d/.test(line));
     const impactPct = bullets.length ? Math.round(quantified.length / bullets.length * 100) : 0;
 
@@ -1769,11 +2025,64 @@ document.addEventListener('DOMContentLoaded', () => {
       'automated', 'managed', 'created', 'delivered', 'optimized', 'identified', 'spearheaded',
       'streamlined', 'negotiated', 'secured', 'designed', 'implemented', 'owned', 'developed',
       'grew', 'cut', 'shipped', 'migrated', 'scaled', 'resolved', 'monitored', 'executed'];
-    const verbHits = bullets.filter(line => {
-      const stripped = line.replace(/^(?:[-•●*]|\d+[.)])\s*/, '');
-      return actionVerbs.some(v => new RegExp('^' + v, 'i').test(stripped));
-    }).length;
+    const strippedBullets = bullets.map(line => line.replace(BULLET_MARKER_STRIP_RE, '').trim());
+    const startsWithVerb = s => actionVerbs.some(v => new RegExp('^' + v, 'i').test(s));
+    const verbHits = strippedBullets.filter(startsWithVerb).length;
     const verbPct = bullets.length ? Math.round(verbHits / bullets.length * 100) : 0;
+    // The full fix lists (every weak bullet, not just a few) are built right
+    // after suggestVerb/verbSuggestions below, so each gets a content-matched
+    // rewrite the user can edit and apply back into the editor.
+    // Pick the verb that actually fits the bullet's own content.
+    function suggestVerb(bullet) {
+      const t = bullet.toLowerCase();
+      if (/\b(managed|oversaw|supervised|led|ran|directed|headed)\b/.test(t)) return 'Led';
+      if (/\b(built|created|developed|designed|developed)\b/.test(t)) return 'Built';
+      if (/\b(tested|validated|reviewed|verified|audited|monitored)\b/.test(t)) return 'Validated';
+      if (/\b(performed|conducted|executed|carried out)\b/.test(t)) return 'Executed';
+      if (/\b(supported|assisted|helped|contributed|participated)\b/.test(t)) return 'Delivered';
+      if (/\b(resolved|fixed|troubleshoot|debugged)\b/.test(t)) return 'Resolved';
+      if (/\b(improved|optimi[sz]ed|increased|reduced|cut)\b/.test(t)) return 'Improved';
+      if (/\b(automated|streamlined|integrated)\b/.test(t)) return 'Automated';
+      if (/\b(report|document|analyz|analys)\w*/.test(t)) return 'Analysed';
+      if (/\b(plan|schedul|coordinat)\w*/.test(t)) return 'Owned';
+      return null;
+    }
+    const verbSuggestions = ['Led', 'Built', 'Automated', 'Reduced', 'Delivered', 'Owned', 'Executed', 'Improved'];
+
+    // Full Impact fix list: EVERY numberless bullet, each with an editable
+    // suggested rewrite. metricClauses rotate so the scaffold reads varied.
+    const metricClauses = [
+      'cutting cycle time by 30%',
+      'saving ₹2L per month',
+      'serving 12 clients with 40% fewer errors',
+      'reducing turnaround by 45%'
+    ];
+    const impactFixes = bullets.map((line, i) => {
+      if (/\d/.test(line)) return null;
+      const marker = (line.match(BULLET_MARKER_STRIP_RE) || [''])[0] || '• ';
+      const orig = line.replace(BULLET_MARKER_STRIP_RE, '').trim();
+      return {
+        marker,
+        orig,
+        suggested: orig.replace(/[.,;]\s*$/, '') + ', ' + metricClauses[i % metricClauses.length]
+      };
+    }).filter(Boolean);
+
+    // Full Verb fix list: EVERY weak-opener bullet. The suggested verb is
+    // chosen from the bullet's own content (suggestVerb), swapping only the
+    // opening word — the user edits the rest before applying.
+    const verbFixes = bullets.map((line, i) => {
+      const marker = (line.match(BULLET_MARKER_STRIP_RE) || [''])[0] || '• ';
+      const orig = line.replace(BULLET_MARKER_STRIP_RE, '').trim();
+      if (orig.length < 4 || startsWithVerb(orig)) return null;
+      const verb = (suggestVerb(orig) || verbSuggestions[i % verbSuggestions.length]).toLowerCase();
+      const rest = orig.slice(orig.search(/\s/)).replace(/^\s+/, '');
+      return { marker, orig, suggested: rest ? verb + ' ' + rest : verb };
+    }).filter(Boolean);
+
+    // Current fix lists for the delegated Apply/Copy handlers on #resumeResults.
+    vitalsCtx = { impact: impactFixes, verb: verbFixes, ai: [] };
+    lastAnalyzedRaw = resumeData.rawText || '';
 
     const inDemandSkills = ['excel', 'sql', 'power bi', 'tableau', 'python', 'google analytics',
       'data analysis', 'reporting', 'meta ads', 'google ads', 'process improvement', 'stakeholder management'];
@@ -1892,50 +2201,30 @@ document.addEventListener('DOMContentLoaded', () => {
         ${resumeData.contactInfo.phone ? `<span class="contact-item"><span class="contact-icon">☎</span>${resumeData.contactInfo.phone}</span>` : ''}
       </div>` : ''}
 
-      <!-- Skill Sections Grid -->
+      <!-- Skill Sections Grid — only categories that actually detected
+           something are shown; empty categories are dropped so an IT resume
+           doesn't get "Marketplace: Not detected" noise. -->
       <div class="skill-grid">
+        ${(function () {
+          const sections = [
+            { color: '#8B7BFF', name: 'Functional', skills: resumeData.functionalSkills },
+            { color: '#C8F54A', name: 'Technical', skills: resumeData.technicalSkills },
+            { color: '#FFB454', name: 'Marketplace', skills: resumeData.marketplacePlatforms },
+            { color: '#5ECFE8', name: 'Tools', skills: resumeData.tools },
+            { color: '#FF6B9D', name: 'Analytics', skills: resumeData.analytics },
+            { color: '#A3A9B8', name: 'Transferable', skills: resumeData.transferableSkills }
+          ];
+          const present = sections.filter(s => s.skills && s.skills.length > 0);
+          if (!present.length) return '<div class="p-4"><span class="text-muted">No skills detected yet — add a skills section with concrete tools and technologies.</span></div>';
+          return present.map(s => `
         <div class="skill-section">
           <div class="skill-section-header">
-            <span class="skill-dot" style="background:#8B7BFF"></span>
-            <span>Functional</span>
+            <span class="skill-dot" style="background:${s.color}"></span>
+            <span>${s.name}</span>
           </div>
-          ${skillChips(resumeData.functionalSkills)}
-        </div>
-        <div class="skill-section">
-          <div class="skill-section-header">
-            <span class="skill-dot" style="background:#C8F54A"></span>
-            <span>Technical</span>
-          </div>
-          ${skillChips(resumeData.technicalSkills)}
-        </div>
-        <div class="skill-section">
-          <div class="skill-section-header">
-            <span class="skill-dot" style="background:#FFB454"></span>
-            <span>Marketplace</span>
-          </div>
-          ${skillChips(resumeData.marketplacePlatforms)}
-        </div>
-        <div class="skill-section">
-          <div class="skill-section-header">
-            <span class="skill-dot" style="background:#5ECFE8"></span>
-            <span>Tools</span>
-          </div>
-          ${skillChips(resumeData.tools)}
-        </div>
-        <div class="skill-section">
-          <div class="skill-section-header">
-            <span class="skill-dot" style="background:#FF6B9D"></span>
-            <span>Analytics</span>
-          </div>
-          ${skillChips(resumeData.analytics)}
-        </div>
-        <div class="skill-section">
-          <div class="skill-section-header">
-            <span class="skill-dot" style="background:#A3A9B8"></span>
-            <span>Transferable</span>
-          </div>
-          ${skillChips(resumeData.transferableSkills)}
-        </div>
+          ${skillChips(s.skills)}
+        </div>`).join('');
+        })()}
       </div>
 
       <!-- ATS & HR norms -->
@@ -1943,10 +2232,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="ats-norms-head">
           <div class="ats-norms-score"><strong>${atsReadiness}%</strong><span>ATS &amp; HR</span></div>
           <div>
-            <h6>${atsVerdict} — ${atsPass}/${normChecks.length} norms pass</h6>
+            <h6>${atsVerdict} — ${atsPass} of ${normChecks.length} checks pass</h6>
             <p>${atsPass === normChecks.length
               ? 'A clean read for both the machine and the human. Keep it tailored per application and you’re in a strong spot.'
-              : `Fix the ${normChecks.length - atsPass} flagged items below — each one is a filter an ATS or HR screens on before a human ever sees you.`}</p>
+              : `Fix the ${normChecks.length - atsPass} flagged items below — each one is a filter an ATS or HR applies before a human sees your resume.`}</p>
           </div>
         </div>
         <div class="ats-checks">
@@ -1971,12 +2260,40 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="rf-meter"><div class="rf-meter-fill" style="width:${impactPct}%;background:${impactPct >= 60 ? 'var(--accent)' : 'var(--warn)'}"></div></div>
           <div class="rf-meter-row"><strong>${impactPct}%</strong> of bullets carry a number</div>
           <p>${impactCopy}</p>
+          ${impactFixes.length ? `
+            <div class="rf-fixes">
+              <strong>Add a number to all ${impactFixes.length} of these</strong><br>
+              <span class="text-muted">Edit any line, then <em>Apply</em> it into your resume or <em>Copy</em> it.</span>
+              ${impactFixes.map((f, i) => `
+                <div class="rf-fix">
+                  <div class="rf-fix-orig">• “${escAttr(f.orig)}”</div>
+                  <div class="rf-fix-row">
+                    <input type="text" class="rf-fix-input" data-kind="impact" data-fix="${i}" value="${escAttr(f.suggested)}" aria-label="Suggested rewrite">
+                    <button type="button" class="rf-fix-btn" data-kind="impact" data-apply-fix="${i}">Apply</button>
+                    <button type="button" class="rf-fix-btn" data-kind="impact" data-copy-fix="${i}">Copy</button>
+                  </div>
+                </div>`).join('')}
+            </div>` : ''}
         </div>
         <div class="rf-card">
           <h6>Verb Power</h6>
           <div class="rf-meter"><div class="rf-meter-fill" style="width:${verbPct}%;background:${verbPct >= 50 ? 'var(--accent)' : 'var(--warn)'}"></div></div>
           <div class="rf-meter-row"><strong>${verbPct}%</strong> open with an action verb</div>
           <p>${verbCopy}</p>
+          ${verbFixes.length ? `
+            <div class="rf-fixes">
+              <strong>Reopen all ${verbFixes.length} weak bullets</strong><br>
+              <span class="text-muted">Suggested verb is picked from the bullet's own words — edit the line, then <em>Apply</em> or <em>Copy</em>.</span>
+              ${verbFixes.map((f, i) => `
+                <div class="rf-fix">
+                  <div class="rf-fix-orig">• “${escAttr(f.orig)}” → start with <em class="rf-fix-verb">${escAttr(f.suggested.split(' ')[0])}</em></div>
+                  <div class="rf-fix-row">
+                    <input type="text" class="rf-fix-input" data-kind="verb" data-fix="${i}" value="${escAttr(f.suggested)}" aria-label="Suggested rewrite">
+                    <button type="button" class="rf-fix-btn" data-kind="verb" data-apply-fix="${i}">Apply</button>
+                    <button type="button" class="rf-fix-btn" data-kind="verb" data-copy-fix="${i}">Copy</button>
+                  </div>
+                </div>`).join('')}
+            </div>` : ''}
         </div>
         <div class="rf-card">
           <h6>ATS Keyword Radar <span class="text-muted" style="font-weight:400;font-size:0.72rem">· in-demand set</span></h6>
@@ -1995,6 +2312,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
+      <!-- AI coach: optional full rewrites via local node server.js -->
+      <div class="rf-ai">
+        <div class="rf-ai-head">
+          <h6>AI coach</h6>
+          <span class="text-muted" style="font-size:0.7rem">Full, personalized rewrites — <code>node server.js</code> with a free key (Groq / Gemini) or local Ollama</span>
+          <button type="button" class="rf-fix-btn" id="aiCoachBtn">✨ Get AI rewrites</button>
+          <span class="rf-ai-providers text-muted" id="aiCoachProviders" style="font-size:0.72rem"></span>
+          <span class="rf-ai-status text-muted" id="aiCoachStatus" style="font-size:0.72rem"></span>
+        </div>
+        <div id="aiCoachResults"></div>
+      </div>
+
       <!-- Quick wins -->
       <div class="rf-quickwins">
         <h6>Quick Wins, Ranked by Payoff</h6>
@@ -2005,6 +2334,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`).join('')}
       </div>
     `;
+
+    refreshAiCoachProviders(); // which free routes are live on the dev server
 
     // Animate the score ring + count-up number after DOM render
     const resumeScoreEl = document.getElementById('resume-score');
@@ -2035,9 +2366,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update Career Fit score and feedback when no job description is analyzed yet
     // Show appropriate empty state instead of fake scores
     if (careerFitScore && careerFitFeedback && Object.keys(careerFitData).length === 0) {
-      // Show empty state - no job description analyzed yet
+      // Show empty state - nothing has been assessed yet (no target role
+      // chosen, no job description analyzed). Offer the two explicit paths
+      // instead of forcing either.
       careerFitScore.textContent = '0%';
-      careerFitFeedback.textContent = 'Analyze a job description to see career fit details.';
+      careerFitFeedback.textContent = 'Pick a target role to see your career fit, or analyze a job description instead — nothing is assumed.';
 
       // Clear experience fields
       if (totalExperience) totalExperience.textContent = formatExperienceYears(resumeData.totalExperience);
@@ -2049,7 +2382,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (careerFitDetails) {
         careerFitDetails.innerHTML = `
           <div class="text-center py-4">
-            <p class="text-muted">Analyze a job description to see specific career fit details.</p>
+            <p class="text-muted">Career fit details appear when you pick a target role above, or analyze a job description against your resume.</p>
           </div>
         `;
       }
@@ -2611,6 +2944,84 @@ document.addEventListener('DOMContentLoaded', () => {
     targetRoleSelect.addEventListener('change', assessTargetRole);
   }
 
+  // --- Type-to-search target roles (career fit) ---
+  // The datalist offers every catalogue role; typing an unknown title assesses
+  // it as a CUSTOM role against the detected skills (honest, evidence-only).
+  const targetRoleSearch = document.getElementById('targetRoleSearch');
+  const targetRoleOptions = document.getElementById('targetRoleOptions');
+  if (targetRoleOptions) {
+    targetRoleOptions.innerHTML = Object.values(ALL_ROLES_FLAT)
+      .map(r => `<option value="${escAttr(r.name)}"></option>`).join('');
+  }
+
+  // Find a catalogue role by name (case- and space-insensitive, substring OK:
+  // "Cyber Security Analyst" matches the catalogue's "Cybersecurity Analyst").
+  function findRoleByName(label) {
+    const norm = s => String(s || '').trim().toLowerCase().replace(/[\s\-]+/g, '');
+    const q = norm(label);
+    if (!q) return null;
+    for (const key in ALL_ROLES_FLAT) {
+      const r = ALL_ROLES_FLAT[key];
+      const name = norm(r.name);
+      if (name === q || name.includes(q) || q.includes(name)) return key;
+    }
+    return null;
+  }
+
+  // Assess a title that is NOT in the catalogue: relevance = how much of the
+  // detected skill set the title's words actually point at. No invented match.
+  function assessCustomRole(label) {
+    if (!careerFitScore || !careerFitFeedback || !careerFitDetails) return;
+    if (!resumeData || !Array.isArray(resumeData.skills) || resumeData.skills.length === 0) {
+      careerFitScore.textContent = '--';
+      careerFitFeedback.textContent = 'Analyze your resume first, then type the role you want to target.';
+      careerFitDetails.innerHTML = '<p class="text-muted">No resume analyzed yet.</p>';
+      return;
+    }
+    const words = String(label).toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const have = resumeData.skills;
+    const matched = have.filter(s => words.some(w => s.includes(w) || w.includes(s)));
+    const pct = Math.round((matched.length / have.length) * 100);
+    careerFitScore.textContent = pct + '%';
+    careerFitScore.classList.remove('career-score-pop');
+    void careerFitScore.offsetWidth;
+    careerFitScore.classList.add('career-score-pop');
+    careerFitFeedback.textContent =
+      `Relevance of your detected skills to “${label}” (custom target — not a catalogue role). ` +
+      `${matched.length} of ${have.length} detected skills point that way.`;
+    const ring = document.getElementById('careerFitRing');
+    if (ring) {
+      ring.style.strokeDashoffset = 326.73 - (326.73 * pct / 100);
+      ring.style.stroke = pct >= 60 ? '#C8F54A' : pct >= 30 ? '#FFB454' : '#FF6B6B';
+    }
+    careerFitDetails.innerHTML = `
+      <div style="font-size:.85rem;line-height:1.7">
+        <strong style="color:var(--text)">Skills that fit “${escAttr(label)}”:</strong><br>
+        ${matched.length
+          ? matched.map(s => `<span class="chip chip-accent" style="margin:3px 4px 3px 0">${escAttr(s)}</span>`).join('')
+          : '<span class="text-muted">None of the detected skills match this title\'s words yet.</span>'}<br><br>
+        <strong style="color:var(--text)">What to do next:</strong> write the missing skills for this role
+        explicitly into your resume (tools, domains, outcomes) — detection is evidence-only,
+        nothing is assumed. Then re-analyze and the match becomes measurable.
+        <span style="color:var(--muted);display:block;margin-top:6px;font-size:.78rem">Preliminary estimate, not a hiring prediction.</span>
+      </div>`;
+    document.getElementById('careerFitCard')?.classList.remove('d-none');
+  }
+
+  if (targetRoleSearch) {
+    targetRoleSearch.addEventListener('change', () => {
+      const label = targetRoleSearch.value.trim();
+      if (!label) return;
+      const key = findRoleByName(label);
+      if (key && targetRoleSelect) {
+        targetRoleSelect.value = key;
+        assessTargetRole();
+      } else {
+        assessCustomRole(label);
+      }
+    });
+  }
+
   // Analyze career fit between resume and job description
   function analyzeCareerFit() {
     if (Object.keys(resumeData).length === 0 || Object.keys(careerFitData).length === 0) {
@@ -2983,11 +3394,96 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
   // Match tab "Target Role" select — same single source of truth as Discovery,
   // so every catalogue role (incl. finance & IT) is assessable there too.
+  // Rank every catalogue role against the analyzed resume using ONLY skills
+  // actually detected in it (same evidence-only scoring as Discovery).
+  function rankRolesForResume(resumeSkills, yearsExp) {
+    const have = new Set((Array.isArray(resumeSkills) ? resumeSkills : []).map(canonicalSkill));
+    const exp = Number(yearsExp) || 0;
+    return Object.entries(ALL_ROLES_FLAT).map(([key, role]) => {
+      const matched = (role.skills || []).filter(s => have.has(canonicalSkill(s)));
+      const coverage = (role.skills || []).length ? matched.length / role.skills.length : 0;
+      const min = (role.exp && role.exp.min) || 0;
+      const pref = (role.exp && role.exp.preferred) || min;
+      return {
+        key, role, matched, coverage,
+        score: coverage * 100 + (exp >= min ? 15 : 0) + (exp >= pref ? 10 : 0) + (matched.length ? 5 : 0)
+      };
+    }).sort((a, b) => b.score - a.score);
+  }
+
   function repopulateMatchRoleFilter() {
     const dd = document.getElementById('targetRoleSelect');
     if (!dd) return;
     const current = dd.value;
-    dd.innerHTML = '<option value="">-- Select a target role --</option>' + roleCatalogueOptionGroups();
+
+    const hasSkills = resumeData && Array.isArray(resumeData.skills) && resumeData.skills.length > 0;
+    let html = '<option value="">-- Select a target role --</option>';
+    let recommended = [];
+
+    if (hasSkills) {
+      // Relevance-aware: only roles with real signal for THIS resume lead —
+      // at least 2 shared core skills, or 50%+ coverage of a role's short
+      // skill list — grouped into the top 3 career families. Everything else
+      // stays reachable under a single "other fields" group so no role is lost.
+      const ranked = rankRolesForResume(resumeData.skills, resumeData.totalExperience);
+      const eligible = ranked.filter(r =>
+        r.matched.length >= 2 || ((r.role.skills || []).length > 0 && r.coverage >= 0.5));
+
+      if (eligible.length) {
+        const famScore = {};
+        eligible.forEach(r => { famScore[r.role.family] = Math.max(famScore[r.role.family] || 0, r.score); });
+        const topFamilies = Object.entries(famScore)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(e => e[0]);
+        recommended = eligible.filter(r => topFamilies.includes(r.role.family));
+        // Group per family (families ordered by their best-scoring role) so the
+        // same family never appears as two separate optgroups.
+        const familyOrder = [];
+        recommended.forEach(r => { if (!familyOrder.includes(r.role.family)) familyOrder.push(r.role.family); });
+        const grouped = recommended.slice().sort((a, b) =>
+          (familyOrder.indexOf(a.role.family) - familyOrder.indexOf(b.role.family)) || (b.score - a.score));
+        let lastFamily = null;
+        let shownInFamily = 0;
+        grouped.forEach(r => {
+          if (r.role.family !== lastFamily) {
+            if (lastFamily !== null) html += '</optgroup>';
+            html += '<optgroup label="' + escAttr('For your resume · ' + r.role.family) + '">';
+            lastFamily = r.role.family;
+            shownInFamily = 0;
+          }
+          shownInFamily++;
+          // Enough room per family that a strong-but-7th role (e.g. a
+          // cybersecurity role on a security resume) is not cut off.
+          if (shownInFamily <= 8) html += '<option value="' + r.key + '">' + escAttr(r.role.name) + '</option>';
+        });
+        html += '</optgroup>';
+      }
+
+      if (recommended.length) {
+        const recKeys = new Set(recommended.map(r => r.key));
+        const others = ranked.filter(r => !recKeys.has(r.key));
+        if (others.length) {
+          html += '<optgroup label="Other fields — ' + others.length + ' roles">';
+          others.forEach(r => {
+            html += '<option value="' + r.key + '">' + escAttr(r.role.name) + ' (' + escAttr(r.role.family) + ')</option>';
+          });
+          html += '</optgroup>';
+        }
+      } else {
+        // No catalogue role has real overlap with this resume's field —
+        // don't guess: show the full catalogue without a leading guess.
+        html += roleCatalogueOptionGroups();
+      }
+    } else {
+      html += roleCatalogueOptionGroups();
+    }
+
+    dd.innerHTML = html;
+    // Never auto-pick and never auto-assess here: the career-fit card stays
+    // neutral until the user explicitly selects a target role (its change
+    // listener runs the assessment) or analyzes a job description. We only
+    // keep the option the user already chose, so nothing is forced on them.
     if (current && ALL_ROLES_FLAT[current]) dd.value = current;
   }
 
@@ -4647,7 +5143,8 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
   'salesforce', 'hubspot', 'marketo', 'mailchimp',
   'google workspace', 'microsoft office',
   'network security', 'siem', 'networking', 'monitoring', 'troubleshooting',
-  'windows server', 'active directory'
+  'windows server', 'active directory', 'sdlc', 'api', 'apis', 'server',
+  'cybersecurity', 'vulnerability', 'kotlin', 'android', 'elasticsearch', 'vba'
 ],
       marketplacePlatforms: [
   'amazon', 'walmart', 'target', 'ebay', 'tiktok', 'shopify',
@@ -4656,7 +5153,7 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 ],
       tools: [
         'excel', 'powerpoint', 'word', 'outlook', 'google sheets', 'google docs',
-        'google slides', 'gmail', 'notion', 'airtable', 'trello', 'asana', 'monday.com',
+        'google slides', 'notion', 'airtable', 'trello', 'asana', 'monday.com',
         'slack', 'teams', 'zoom', 'webex', 'googletomeeting', 'sap'
       ],
       analytics: [
@@ -4883,6 +5380,10 @@ educationFallbacks.forEach(item => {
 
     dateStr = dateStr.trim();
 
+    // Resume years live in this window; anything else (zip codes, phone
+    // fragments, "6/6 semesters") must not produce a date.
+    const saneYear = y => !isNaN(y) && y >= 1950 && y <= 2100;
+
     // Try format like "MM/yyyy" or "MM-yyyy" (e.g., "10/2021" or "10-2021")
     const mYMatch = dateStr.match(/^(\d{1,2})[-\/](\d{4})$/);
     if (mYMatch) {
@@ -4894,22 +5395,24 @@ educationFallbacks.forEach(item => {
         return null;
       }
 
-      if (month >= 0 && month < 12) {
+      if (month >= 0 && month < 12 && saneYear(year)) {
         // Return first day of the month
         return new Date(year, month, 1);
       }
       return null; // Invalid month
     }
 
-    // Try format like "Month yyyy" or "Month-yyyy" (e.g., "Oct 2021" or "Oct-2021")
-    const monthNameMatch = dateStr.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[\s\/-](\d{4})$/i);
+    // Try format like "Month yyyy" or "Month-yyyy" (e.g., "Oct 2021", "Oct-2021",
+    // "Oct. 2021" — full month names too: "October 2021", "September 2015")
+    const monthNameMatch = dateStr.match(/^([a-z]+)\.?(?:[\s\/-])(\d{4})$/i);
     if (monthNameMatch) {
-      let month = monthNameMatch[1].toLowerCase();
+      const name = monthNameMatch[1].slice(0, 3).toLowerCase(); // jan/feb/.../dec prefix
+      const MONTH_ABBR = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const monthIndex = MONTH_ABBR.indexOf(name);
       let year = parseInt(monthNameMatch[2]);
-      const monthIndex = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(month);
 
-      // Check if month and year are valid numbers
-      if (monthIndex === -1 || isNaN(year)) {
+      // Check if month and year are valid
+      if (monthIndex === -1 || !saneYear(year)) {
         return null;
       }
 
@@ -4935,16 +5438,17 @@ educationFallbacks.forEach(item => {
       return null; // Invalid date
     }
 
-    // Try format like "Month dd, yyyy" (e.g., "Oct 15, 2021")
-    const monthDayYearMatch = dateStr.match(/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2}),?\s+(\d{4})$/i);
+    // Try format like "Month dd, yyyy" (e.g., "Oct 15, 2021", "September 15 2021")
+    const monthDayYearMatch = dateStr.match(/^([a-z]+)\s+(\d{1,2}),?\s+(\d{4})$/i);
     if (monthDayYearMatch) {
-      let month = monthDayYearMatch[1].toLowerCase();
+      const name = monthDayYearMatch[1].slice(0, 3).toLowerCase();
+      const MONTH_ABBR = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const monthIndex = MONTH_ABBR.indexOf(name);
       let day = parseInt(monthDayYearMatch[2]);
       let year = parseInt(monthDayYearMatch[3]);
-      const monthIndex = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(month);
 
-      // Check if month, day, and year are valid numbers
-      if (monthIndex === -1 || isNaN(day) || isNaN(year)) {
+      // Check if month, day, and year are valid
+      if (monthIndex === -1 || isNaN(day) || !saneYear(year)) {
         return null;
       }
 
@@ -4979,8 +5483,8 @@ educationFallbacks.forEach(item => {
     const yearMatch = dateStr.match(/^(\d{4})$/);
     if (yearMatch) {
       let year = parseInt(yearMatch[1]);
-      // Check if year is a valid number
-      if (!isNaN(year)) {
+      // Check if year is a valid (and sane) number
+      if (saneYear(year)) {
         // Return January 1st of the year
         return new Date(year, 0, 1);
       }
@@ -4991,13 +5495,51 @@ educationFallbacks.forEach(item => {
     return null;
   }
 
+  // Check if a date range is likely an educational period: the range's own
+  // line (or the line above it) must carry a degree/education marker.
+  // Job-domain words ("engineering", "business", "science") no longer
+  // disqualify employment ranges.
+  function isEducationRange(text, matchStart, matchEnd) {
+    // Trailing \b is essential: without it, "ma" matches inside "manager" /
+    // "Mar 2019" and employment lines get misclassified as education.
+    const eduMarker = /\b(b\.?e\.?|b\.?tech|bca|b\.?sc|bs|b\.?s\.?|ba|b\.?a\.?|ma|m\.?a\.?|ms|m\.?s\.?|bfa|b\.?f\.?a\.?|mfa|m\.?f\.?a\.?|ben|b\.?e\.?n\.?|meng|m\.?e\.?n\.?|mba|m\.?tech|m\.?sc|ph\.?d|mbchb|bachelor|master|degree|diploma|university|college|institute|school|graduat\w*|higher secondary|matric\w*)\b/;
+    // Some resumes are pasted as ONE long line. Line-based checks are then
+    // meaningless (the "range's line" is the whole resume and carries every
+    // marker), so fall back to a small window right before the range — degree
+    // markers normally sit close in front of education dates.
+    if ((text.match(/\n/g) || []).length < 3) {
+      const before = text.substring(Math.max(0, matchStart - 60), matchStart).toLowerCase();
+      return eduMarker.test(before);
+    }
+    const lineStart = text.lastIndexOf('\n', matchStart);
+    const lineEnd = text.indexOf('\n', matchEnd);
+    const rangeLineStart = lineStart === -1 ? 0 : lineStart + 1;
+    const rangeLineEnd = lineEnd === -1 ? text.length : lineEnd;
+    const rangeLine = text.substring(rangeLineStart, rangeLineEnd).toLowerCase();
+    const prevLineStart = lineStart === -1 ? 0 : text.lastIndexOf('\n', lineStart - 1) + 1;
+    const prevLine = lineStart === -1 ? '' : text.substring(prevLineStart, lineStart).toLowerCase();
+    return eduMarker.test(rangeLine) || eduMarker.test(prevLine);
+  }
+
   function extractDateRangesWithContext(text) {
     if (!text || typeof text !== 'string') return [];
 
     // Regex to match date ranges like "October 2021â€“June 2023" or "Oct 2021 - Jun 2023"
     // Also matches "Month YYYYâ€“Present" or "Month YYYY - Present"
     // Also matches "YYYYâ€“YYYY" or "YYYY - Present" or "YYYY - YYYY" - THIS IS THE FIX
-    const dateRangeRegex = /([a-zA-Z]+[\s\/-]+\d{4}|\d{4})\s*[-\u2013\u2014]\s*([a-zA-Z]+[\s\/-]+\d{4}|\d{4}|present|current)/gi;
+    // One date unit: "Month YYYY" / "Mon YYYY" / "Mon. YYYY" / "08/2020" / "YYYY".
+    // A spaced slash is NOT a unit separator by itself — it is only accepted
+    // between two bare years (see dateSep), so phone numbers stay safe.
+    const dateUnit = '(?:[a-zA-Z]+\\.?(?:[\\s/-]\\d{4})|\\d{1,2}/\\d{4}|\\d{1,2}-\\d{4}|\\d{4})';
+    // Separators: hyphen/en/em dash, "to"/"till", or a slash whose left side
+    // is a full 4-digit year ("2021/2025", "2011 / 2015", "April 2011 /
+    // September 2015" as pasted from one-line resumes). Requiring the \d{4}
+    // lookbehind keeps phone numbers and "6/6" style text out.
+    const dateSep = '(?:\\s*[-\\u2013\\u2014]\\s*|\\s+(?:to|till)\\s+|(?<=\\d{4})\\s*/\\s*)';
+    const dateRangeRegex = new RegExp(
+      '(' + dateUnit + ')' + dateSep + '([a-zA-Z]+\\.?(?:[\\s/\\-]\\d{4})|\\d{1,2}[/\\-]\\d{4}|\\d{4}|present|current|ongoing|till date|till now)',
+      'gi'
+    );
 
     const ranges = [];
     let match;
@@ -5009,7 +5551,7 @@ educationFallbacks.forEach(item => {
       const startDate = parseDateString(startStr);
       let endDate;
 
-      if (endStr.toLowerCase() === 'present' || endStr.toLowerCase() === 'current') {
+      if (/^(?:present|current|ongoing|till date|till now)$/i.test(endStr)) {
         endDate = new Date(); // Current date
       } else {
         endDate = parseDateString(endStr);
@@ -5030,8 +5572,10 @@ educationFallbacks.forEach(item => {
                             context.includes('training') ||
                             context.includes('apprentice');
 
-        // Check if this is likely an educational period based on context
-        const isEducation = contextBefore.match(/(b\.e\.|bachelor|master|mba|ph\.d\.|doctor|university|college|institute|school|science|arts|engineering|commerce|business)\b/i) !== null;
+        // Educational periods are detected by degree markers on the range's
+        // own line or the line above it — not by a loose 50-char context scan,
+        // which wrongly dropped employment ranges in IT/business resumes.
+        const isEducation = isEducationRange(text, matchStart, matchEnd);
 
         // ONLY ADD IF IT'S NOT AN EDUCATIONAL PERIOD
         if (!isEducation) {
@@ -5574,10 +6118,28 @@ educationFallbacks.forEach(item => {
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
       const page = await pdf.getPage(pageNumber);
       const content = await page.getTextContent();
-      const pageText = content.items
-        .map(item => item.str || '')
-        .filter(Boolean)
-        .join(' ');
+      const items = content.items.filter(it => it.str && it.str.trim() !== '');
+
+      // Rebuild visual lines from the PDF's own coordinates: pdf.js reports a
+      // y transform per text item, so a y jump means a new line. Without this
+      // every page collapses into one unreadable run-on line and the
+      // experience/bullet parsers see a single line instead of structure.
+      let pageText = '';
+      let lastY = null;
+      for (const item of items) {
+        const y = item.transform ? item.transform[5] : null;
+        if (y !== null && lastY !== null && Math.abs(y - lastY) > 2) {
+          pageText += '\n';
+        } else if (pageText && !/[\n ]$/.test(pageText)) {
+          pageText += ' ';
+        }
+        pageText += item.str;
+        if (y !== null) lastY = y;
+      }
+      pageText = pageText
+        .split('\n')
+        .map(line => line.replace(/[ \t]+/g, ' ').trim())
+        .join('\n');
 
       pages.push(pageText);
     }

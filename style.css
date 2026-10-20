@@ -3754,6 +3754,113 @@ textarea:focus-visible {
     color: var(--text);
 }
 
+/* --- Editable suggestion rows (Impact Meter / Verb Power fix lists) --- */
+.rf-fixes {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    line-height: 1.55;
+}
+
+.rf-fix {
+    margin-top: 8px;
+}
+
+.rf-fix-orig {
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+.rf-fix-verb {
+    color: var(--accent);
+}
+
+.rf-fix-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.rf-fix-input {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.78rem;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.rf-fix-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.rf-fix-input.is-applied {
+    border-color: rgba(200, 245, 74, 0.5);
+    background: rgba(200, 245, 74, 0.08);
+}
+
+.rf-fix-btn {
+    font-family: 'DM Sans';
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.rf-fix-btn:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+}
+
+.rf-fix-btn.is-applied {
+    color: var(--accent-ink, #0A0B0F);
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+/* --- AI coach card (rewrites from the local node server.js endpoint) --- */
+.rf-ai {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+}
+
+.rf-ai-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.rf-ai-head h6 {
+    font-family: 'Sora';
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+.rf-ai-notes {
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 12px 0 4px;
+}
+
 .rf-dots {
     display: flex;
     flex-wrap: wrap;
@@ -3902,8 +4009,10 @@ textarea:focus-visible {
 
 body {
     background: var(--bg);
+    /* No fixed attachment: background-attachment:fixed forces a viewport-
+       pinned layer that breaks text repaint on scroll in Chromium/Windows —
+       headings and individual glyphs went blank while scrolling. */
     background-image: linear-gradient(160deg, #0a0b0f 0%, #0d0f15 100%);
-    background-attachment: fixed;
     animation: none;
 }
 
@@ -4117,7 +4226,6 @@ body {
     color: var(--muted);
     line-height: 1.55;
     margin: 0;
-    max-width: 520px;
 }
 
 .ats-checks {
@@ -4228,12 +4336,10 @@ body {
 
 html[data-theme="onepiece"] body {
     background-image: linear-gradient(180deg, #04101f 0%, #0A2342 62%, #051526 100%);
-    background-attachment: fixed;
 }
 
 html[data-theme="wizard"] body {
     background-image: linear-gradient(180deg, #0b0714 0%, #1A1030 60%, #0D0818 100%);
-    background-attachment: fixed;
 }
 
 /* --- Hero stage panel (capped + centered so it never stretches full-bleed) --- */
@@ -4464,7 +4570,8 @@ body > .container.py-4 > header h1::after {
     letter-spacing: -0.7px;
     line-height: 1.14;
     margin-bottom: 8px;
-    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    /* text-shadow on an animated heading is a scroll-repaint failure trigger
+       in Chromium/Windows (the title blanked out while scrolling) — dropped. */
     animation: heroIn 0.7s ease both;
 }
 

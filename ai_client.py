@@ -569,9 +569,15 @@ def reset_gemini_request_for_testing():
 
 def _gemini_request(payload, model, key, timeout):
     """POST a generateContent request. Returns the parsed JSON response dict.
-    Raises GeminiHTTPError on non-2xx, ModelError('network') on no response."""
+    Raises GeminiHTTPError on non-2xx, and a CONTROLLED ModelError on
+    timeouts, network failures and unreadable success bodies — so no raw
+    exception can reach the HTTP layer (every failure maps to a clean
+    JSON error the frontend can display). The API key only ever appears in
+    the request header; it is not part of any exception or error message."""
     if _gemini_request_override is not None:
         return _gemini_request_override(payload, model, key, timeout)
+    import socket
+    import ssl
     import urllib.request
     import urllib.error
     url = GEMINI_API_BASE + "/" + model + ":generateContent"
@@ -581,7 +587,7 @@ def _gemini_request(payload, model, key, timeout):
         headers={"Content-Type": "application/json", "x-goog-api-key": key})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8"))
+            raw_body = r.read()
     except urllib.error.HTTPError as e:
         # Read the error body for a stable status; it is an error payload and
         # does not contain our key.
@@ -599,6 +605,29 @@ def _gemini_request(payload, model, key, timeout):
         raise ModelError("network",
             "Could not reach Google (network error). Check your connection and "
             "try again.")
+    except (TimeoutError, socket.timeout):
+        # socket.timeout is aliased to TimeoutError on py3.10+; listing both
+        # keeps this explicit. A socket-level read/connect timeout is a
+        # controlled 'timeout' error, not a server crash.
+        raise ModelError("timeout",
+            "Google's API did not respond in time. Try again — very large "
+            "resumes can take a while.")
+    except ssl.SSLError:
+        raise ModelError("network",
+            "TLS error while contacting Google. Check your connection and "
+            "try again.")
+    except OSError:
+        # Any remaining socket-level failure (reset connection, no route,
+        # broken pipe ...) is a controlled network error, never a crash.
+        raise ModelError("network",
+            "Could not reach Google (network error). Check your connection and "
+            "try again.")
+    try:
+        return json.loads(raw_body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        # A 200 response whose body is not readable JSON: controlled, not 500.
+        raise ModelError("invalid_response",
+            "Google's reply could not be read. Try again.")
 
 
 def _to_gemini_schema(schema):
@@ -723,6 +752,46 @@ def _gemini_generate(model, system_instruction, user_text, gemini_schema, key, t
     return text
 
 
+def _map_transport_escapes(e):
+    """Translate a socket-level failure that escaped the transport's own
+    except-clauses into a controlled ModelError, so the AI path can never
+    surface a generic 500 for a network problem. Returns None for anything
+    that is genuinely unexpected (those still reach the server's logged
+    500 catch-all)."""
+    import socket
+    import ssl
+    if isinstance(e, (TimeoutError, socket.timeout)):
+        return ModelError("timeout",
+            "Google's API did not respond in time. Try again — very large "
+            "resumes can take a while.")
+    if isinstance(e, ssl.SSLError):
+        return ModelError("network",
+            "TLS error while contacting Google. Check your connection and "
+            "try again.")
+    if isinstance(e, OSError):
+        return ModelError("network",
+            "Could not reach Google (network error). Check your connection and "
+            "try again.")
+    return None
+
+
+def _gemini_generate_guarded(fn, *args, **kwargs):
+    """Run a _gemini_generate call and map transport-level failures to the
+    controlled errors callers can display (GeminiHTTPError -> provider
+    errors; OSError/timeout family -> clean network errors)."""
+    try:
+        return fn(*args, **kwargs)
+    except GeminiHTTPError as e:
+        raise _map_gemini_http(e)
+    except ModelError:
+        raise
+    except Exception as e:
+        mapped = _map_transport_escapes(e)
+        if mapped is not None:
+            raise mapped
+        raise
+
+
 def _run_analysis_gemini(resume_text, job_description=None, target_role=None):
     key = _gemini_key()
     if not key:
@@ -735,14 +804,12 @@ def _run_analysis_gemini(resume_text, job_description=None, target_role=None):
     if len(resume_text) > 24000:
         resume_text = resume_text[:24000]
     model = gemini_model_name()
-    try:
-        text = _gemini_generate(
-            model,
-            _analysis_instructions(bool(job_description)),
-            analysis_user_message(resume_text, job_description, target_role),
-            _to_gemini_schema(ANALYSIS_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
-    except GeminiHTTPError as e:
-        raise _map_gemini_http(e)
+    text = _gemini_generate_guarded(
+        _gemini_generate,
+        model,
+        _analysis_instructions(bool(job_description)),
+        analysis_user_message(resume_text, job_description, target_role),
+        _to_gemini_schema(ANALYSIS_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
     raw = _parse_json_loose(text)
     if raw is None:
         raise ModelError("invalid_response",
@@ -773,17 +840,15 @@ def _run_studio_gemini(operation, resume_text="", job_description=None,
     if len(source) > 24000:
         source = source[:24000]
     model = gemini_model_name()
-    try:
-        text = _gemini_generate(
-            model,
-            _studio_instructions(operation),
-            studio_user_message(operation, source, job_description,
-                                instructions,
-                                candidate_info if operation == "new_draft" else None,
-                                target_role),
-            _to_gemini_schema(STUDIO_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
-    except GeminiHTTPError as e:
-        raise _map_gemini_http(e)
+    text = _gemini_generate_guarded(
+        _gemini_generate,
+        model,
+        _studio_instructions(operation),
+        studio_user_message(operation, source, job_description,
+                            instructions,
+                            candidate_info if operation == "new_draft" else None,
+                            target_role),
+        _to_gemini_schema(STUDIO_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
     raw = _parse_json_loose(text)
     if raw is None:
         raise ModelError("invalid_response",

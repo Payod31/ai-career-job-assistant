@@ -724,5 +724,133 @@ class RateLimitTests(unittest.TestCase):
             self.assertEqual(self.app.get("/style.css").status_code, 200)
 
 
+# ---------------------------------------------------------------------------
+# 500 hardening: no framework HTML error page, ever.
+#
+# The fake _gemini_request stands in for the real urllib transport; these
+# tests pin the contract that ANY exception a transport-level failure can
+# produce maps to a controlled JSON error, that a truly unexpected failure
+# is logged server-side (so a production 500 is diagnosable from the deploy
+# logs instead of disappearing), and that the last-resort @app.errorhandler
+# keeps every error page in the app's JSON shape. No live calls, no charges.
+# ---------------------------------------------------------------------------
+import logging
+import ssl
+
+
+class _CaptureHandler(logging.Handler):
+    def __init__(self):
+        super().__init__(level=logging.DEBUG)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+class FiveHundredHardeningTests(unittest.TestCase):
+
+    def setUp(self):
+        self._saved = {}
+        for k in ("AI_PROVIDER", "GEMINI_API_KEY", "GEMINI_MODEL", "OPENAI_API_KEY"):
+            self._saved[k] = os.environ.get(k)
+        os.environ["AI_PROVIDER"] = "gemini"
+        os.environ["GEMINI_API_KEY"] = GEMINI_FAKE_KEY
+        os.environ["GEMINI_MODEL"] = "gemini-2.5-flash"
+        os.environ.pop("OPENAI_API_KEY", None)
+
+        self.behavior = None
+        def fake(payload, model, key, timeout):
+            if self.behavior:
+                res = self.behavior(payload, model, key, timeout)
+                if isinstance(res, Exception):
+                    raise res
+                return res
+            return _gemini_ok({})
+        ai_client.set_gemini_request_for_testing(fake)
+
+        self.flask_app = server.create_app()
+        self.app = self.flask_app.test_client()
+
+        self.captures = _CaptureHandler()
+        self.logger = logging.getLogger("career-ai")
+        self._old_level = self.logger.level
+        self.logger.addHandler(self.captures)
+        self.logger.setLevel(logging.DEBUG)
+
+    def tearDown(self):
+        ai_client.set_gemini_request_for_testing(_gemini_unmocked_guard)
+        self.logger.removeHandler(self.captures)
+        self.logger.setLevel(self._old_level)
+        for k, v in self._saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def _logged_errors(self):
+        return [r for r in self.captures.records if r.levelno >= logging.ERROR]
+
+    # 1. A socket-level read timeout is a controlled 502 JSON error.
+    def test_timeout_maps_to_clean_error(self):
+        self.behavior = lambda p, m, k, t: TimeoutError("read timed out")
+        r = self.app.post("/api/analyze-resume", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 502)
+        body = r.get_json()
+        self.assertFalse(body["ok"])
+        self.assertEqual(body["code"], "timeout")
+        self.assertIn("time", body["error"].lower())
+
+    # 2. A reset connection (OSError family, not URLError) is a clean error.
+    def test_connection_reset_maps_to_network_error(self):
+        self.behavior = lambda p, m, k, t: ConnectionResetError("peer reset")
+        r = self.app.post("/api/analyze-resume", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 502)
+        self.assertEqual(r.get_json()["code"], "network")
+
+    # 3. A TLS failure is a clean error, not a crash.
+    def test_ssl_error_maps_to_network_error(self):
+        self.behavior = lambda p, m, k, t: ssl.SSLCertVerificationError("bad cert")
+        r = self.app.post("/api/analyze-resume", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 502)
+        self.assertEqual(r.get_json()["code"], "network")
+
+    # 4. An arbitrary uncaught exception: JSON 500 (never HTML), and the
+    #    traceback is logged server-side so the cause is diagnosable.
+    def test_unexpected_exception_returns_json_500_and_logs_traceback(self):
+        self.behavior = lambda p, m, k, t: RuntimeError("boom")
+        r = self.app.post("/api/analyze-resume", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.content_type, "application/json")
+        body = r.get_json()
+        self.assertFalse(body["ok"])
+        self.assertEqual(body["code"], "internal")
+        errs = self._logged_errors()
+        self.assertTrue(
+            any(r.exc_info and r.exc_info[0] is RuntimeError for r in errs),
+            "the traceback must be logged server-side (no payload, no key)")
+
+    # 5. An exception that escapes the views entirely (e.g. a request hook)
+    #    also gets the JSON 500 shape — the app never emits a framework page.
+    def test_hook_exception_returns_json_500_never_html(self):
+        def _crash():
+            raise KeyError("missing hook value")
+        self.flask_app.before_request(_crash)
+        r = self.app.post("/api/analyze-resume", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 500)
+        self.assertEqual(r.content_type, "application/json")
+        body = r.get_json()
+        self.assertFalse(body["ok"])
+        self.assertEqual(body["code"], "internal")
+        self.assertTrue(
+            any(r.exc_info and r.exc_info[0] is KeyError for r in self._logged_errors()))
+
+    # 6. Even a missing static file renders in the app's JSON shape.
+    def test_missing_static_file_is_json_404(self):
+        r = self.app.get("/definitely-missing-file.css")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.content_type, "application/json")
+        self.assertFalse(r.get_json()["ok"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

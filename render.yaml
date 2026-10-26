@@ -11,7 +11,12 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT server:app
+    # --timeout 100: a Gemini request can take up to ai_client.REQUEST_TIMEOUT
+    # (90s). Gunicorn's default 30s worker timeout kills in-flight workers, so
+    # a slow-but-healthy AI call would die mid-request and surface as a 502
+    # Bad Gateway from Render's router. 100s > 90s cap, so a request that
+    # outlives this gets the clean JSON timeout error instead.
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 100 server:app
     envVars:
       - key: AI_PROVIDER
         value: gemini

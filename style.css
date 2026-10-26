@@ -6785,6 +6785,25 @@ code {
 .studio-sugg-accept { display: inline-flex; align-items: center; gap: 6px; font-size: .76rem; margin-top: 8px; color: var(--text); }
 .studio-sugg-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
+/* Studio: concise summary chips above the primary AI action, plus the
+   collapsed "advanced" areas (details/summary, no new dependencies). */
+.studio-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.studio-summary .studio-chip { text-transform: none; letter-spacing: 0; }
+details.studio-adv, details.studio-ai-options { margin-top: 14px; }
+details.studio-adv > summary, details.studio-ai-options > summary,
+details.rf-adv > summary {
+  cursor: pointer; font-size: .8rem; color: var(--muted); padding: 6px 0;
+}
+details.studio-adv[open] > summary, details.studio-ai-options[open] > summary { color: var(--text); }
+.studio-ai-options .studio-controls { margin-top: 6px; }
+
+/* Resume Analysis tab: collapsed "advanced diagnostics" region and the
+   small retry/re-run affordances inside the AI analysis section. */
+details.rf-adv { margin: 14px 0; }
+details.rf-adv > summary { cursor: pointer; font-size: .82rem; }
+details.rf-adv[open] { border: 1px solid var(--border); border-radius: 10px; padding: 4px 10px; }
+.rf-ai-rerun { margin-top: 8px; font-size: .72rem; padding: 3px 10px; }
+
 .studio-draft-label { display: block; font-size: .74rem; color: var(--muted); margin: 12px 0 4px; }
 .studio-draft-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .studio-draft-cols { grid-template-columns: 1fr; } }

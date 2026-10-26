@@ -21,6 +21,7 @@ The frontend is fully client-side and keeps working without these endpoints; the
 AI buttons simply report that the AI server is unavailable.
 """
 
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -32,6 +33,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # as environment variables. load_dotenv() will NOT override keys that are
 # already set in the real environment.
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
+# Server-side diagnostic logging. NEVER log request payloads (resume text)
+# or API keys — only exception types/messages from our own stack frames,
+# which is what makes a 500 diagnosable from the deploy logs.
+log = logging.getLogger("career-ai")
 
 from flask import Flask, jsonify, request, send_from_directory  # noqa: E402
 
@@ -145,6 +151,19 @@ def create_app():
         resp.status_code = status
         return resp
 
+    # Last-resort handler for ANY exception that escaped the routes above
+    # (e.g. raised in a request hook or between helper calls): the client
+    # gets the same safe JSON shape — never a framework HTML error page —
+    # and the full traceback is logged server-side for diagnosis.
+    @app.errorhandler(Exception)
+    def _unhandled_exception(e):
+        from werkzeug.exceptions import HTTPException
+        if isinstance(e, HTTPException):
+            # 404s and friends keep their own codes, rendered in our JSON shape.
+            return _error("http_%s" % e.code, e.description or "Request error.", e.code)
+        log.exception("Unhandled request exception; the client sees a generic 500.")
+        return _error("internal", "Unexpected server error. Try again.", 500)
+
     def _json_payload():
         # Accept both a JSON body and (as a fallback) form fields, so the
         # frontend has one flexible contract.
@@ -199,7 +218,13 @@ def create_app():
         except doc_extract.ExtractionError as e:
             return _error("extract:" + e.code, e.message, 400)
         except Exception:
-            # Never leak a stack trace or the key to the client.
+            # Never leak a stack trace or the key to the client. Log the
+            # exception SERVER-SIDE (our own frames only; the caught value is
+            # an exception object, not a payload) so a 500 is diagnosable
+            # from the deploy logs instead of disappearing silently.
+            log.exception(
+                "AI request failed with an unhandled exception; the client "
+                "sees a generic 500. Operation: %s", getattr(fn, "__name__", fn))
             return _error("internal", "Unexpected server error. Try again.", 500)
         out = dict(result)
         out["ok"] = True

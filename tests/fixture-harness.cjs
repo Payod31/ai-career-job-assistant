@@ -34,10 +34,6 @@ function makeEl(id) {
     disabled: false,
     textContent: '',
     _innerHTML: '',
-    innerHTML: {
-      get: () => el._innerHTML,
-      set: v => { el._innerHTML = String(v); }
-    },
     dataset: {},
     style: { setProperty() {}, },
     classList: {
@@ -71,8 +67,18 @@ function makeEl(id) {
     matches() { return false; },
     remove() {},
     insertBefore() {},
-    contains() { return false; }
+    contains() { return false; },
+    insertAdjacentHTML(pos, html) { if (pos === 'beforeend') el._innerHTML += String(html); }
   };
+  // innerHTML must be a REAL accessor: a plain {get,set} object property is
+  // silently replaced by the first `el.innerHTML = x` string write, after
+  // which insertAdjacentHTML appends (to _innerHTML) become invisible to
+  // .innerHTML reads. The accessor keeps the two in lockstep, like DOM.
+  Object.defineProperty(el, 'innerHTML', {
+    get() { return el._innerHTML; },
+    set(v) { el._innerHTML = String(v); },
+    configurable: true
+  });
   return el;
 }
 
@@ -110,7 +116,7 @@ function buildSandbox(localStorageObj) {
     document: doc,
     localStorage: lsShim,
     navigator: { clipboard: { writeText: () => Promise.resolve() }, userAgent: 'node-harness' },
-    fetch: () => Promise.reject(new Error('no network in harness')),
+    fetch: (url, opts) => { sandbox.__fetches.push({ url, opts }); return Promise.reject(new Error('no network in harness')); },
     Event: class Event { constructor(t) { this.type = t; } },
     DataTransfer: class { constructor() { this.items = { add() {} }; this.files = []; } },
     File: class {},
@@ -127,6 +133,7 @@ function buildSandbox(localStorageObj) {
     btoa: s => Buffer.from(s, 'binary').toString('base64'),
     Uint8Array, ArrayBuffer, TextDecoder, TextEncoder,
     __alerts: [],
+    __fetches: [], // every fetch() call the app makes: {url, opts}
     __doc: doc,
     __elements: elements,
     __ls: lsShim
@@ -285,16 +292,26 @@ function check(name, cond, detail) {
   check('legacy: profile load kept (not dropped)', !!p && p.totalExperience === 4.5, JSON.stringify(p && p.totalExperience));
 }
 
-// 10. AI coach wiring survives: handlers registered on resumeResults
+// 10. AI analysis wiring: the legacy node-server "AI coach" section is gone;
+//     the single provider-powered section is rendered and the retry affordance
+//     is delegated on #resumeResults.
 {
   const sb = loadApp({});
   sb.__doc.getElementById('resumeInput').value = 'x\n- led team of 4';
   sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
   const rr = sb.__doc.getElementById('resumeResults');
-  const hasCoachUi = rr.innerHTML.includes('aiCoachBtn') && rr.innerHTML.includes('aiCoachProviders');
-  check('ai-coach: card still rendered after analyze', hasCoachUi, hasCoachUi ? 'aiCoachBtn + aiCoachProviders present' : 'MISSING');
+  check('ai-section: unified AI analysis section rendered after analyze',
+        rr.innerHTML.includes('aiAnalyzeResults') && rr.innerHTML.includes('aiAnalyzeStatus'),
+        'aiAnalyzeResults + aiAnalyzeStatus present');
+  check('ai-section: legacy node-server AI coach removed (no "no route yet" UI)',
+        !rr.innerHTML.includes('aiCoachBtn') && !rr.innerHTML.includes('aiCoachProviders')
+        && !rr.innerHTML.includes('no route yet'),
+        'coach markup absent');
+  check('ai-section: diagnostic meters collapsed under Advanced diagnostics',
+        rr.innerHTML.includes('<details class="rf-adv">') && rr.innerHTML.includes('Advanced diagnostics'),
+        'collapsed details wrapper present');
   const clickHandlers = (rr.listeners['click'] || []).length;
-  check('ai-coach: click handler (Apply/Copy/AI) still registered', clickHandlers >= 1, clickHandlers + ' handlers');
+  check('ai-section: delegated click handler (Apply/Copy/ai-rerun) registered', clickHandlers >= 1, clickHandlers + ' handlers');
 }
 
 // ================= Commit B: extended assertions =================
@@ -739,12 +756,306 @@ function studioTextarea(sb, id) {
         'studio pane rendered, no alerts');
 }
 
-// ---------- report ----------
-let pass = 0, fail = 0;
-for (const r of results) {
-  const mark = r.pass ? 'PASS' : 'FAIL';
-  if (r.pass) pass++; else fail++;
-  console.log(`[${mark}] ${r.name}  →  ${r.detail}`);
+// ================= One-click AI flow (async: the click handler fires an
+// AI request the user never has to start with a second button) =================
+const tick = ms => new Promise(r => setTimeout(r, ms));
+const CANNED_ANALYSIS = {
+  ok: true,
+  analysis: {
+    candidate_summary: 'Strong ops profile.',
+    employment_history: [], experience_and_skills: [], education_and_certifications: [],
+    achievements: [], strengths: ['Operations'], transferable_skills: [],
+    missing_relative_to_jd: [], ats_concerns: ['No summary'], missing_or_ambiguous: [],
+    recommendations: ['Add a summary']
+  },
+  model: 'gemini-3.8-flash', provider: 'gemini', requestId: 'a1', resume_chars_used: 40
+};
+const CANNED_STUDIO = {
+  ok: true,
+  result: {
+    operation: 'improve', summary: 'Tightened the weakest bullets.',
+    content: 'Revised resume body…',
+    suggestions: [{ original: 'responsible for X', suggested: 'Owned X, cutting cycle time 30%', why: 'verb-led + measurable' }],
+    questions: []
+  },
+  model: 'gemini-3.8-flash', provider: 'gemini', operation: 'improve'
+};
+function successFetch(sb, studioToo) {
+  sb.fetch = (url, opts) => {
+    sb.__fetches.push({ url, opts });
+    if (url === '/api/analyze-resume') return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(CANNED_ANALYSIS) });
+    if (url === '/api/resume-studio' && studioToo) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(CANNED_STUDIO) });
+    if (url === '/api/health') return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ ok: true, provider: 'gemini', model: 'gemini-3.8-flash' }) });
+    return Promise.reject(new Error('blocked in harness: ' + url));
+  };
 }
-console.log(`\n${pass} passed, ${fail} failed (${results.length} checks)`);
-process.exit(fail ? 1 : 0);
+function fireOnResults(sb, sel) {
+  const host = sb.__doc.getElementById('resumeResults');
+  const fake = { dataset: {}, closest(s) { return s === sel ? fake : null; } };
+  host.fire('click', { target: fake, preventDefault() {}, stopPropagation() {} });
+}
+
+(async () => {
+  // A1. One Analyze click fires AT MOST ONE AI request; on failure the
+  // resume text is preserved, the error is shown, and nothing claims success.
+  {
+    const sb = loadApp({});
+    sb.__doc.getElementById('resumeInput').value = 'J. One\nj@x.com\n- led a team of 4\nSkills\nExcel';
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    const aiCalls = sb.__fetches.filter(f => f.url === '/api/analyze-resume');
+    check('A1 one click -> exactly one AI request', aiCalls.length === 1, aiCalls.length + ' calls');
+    const input = sb.__doc.getElementById('resumeInput').value;
+    check('A1 failure preserves the user resume text', input.includes('led a team of 4'), input.slice(0, 40));
+    const status = sb.__doc.getElementById('aiAnalyzeStatus').textContent;
+    const results = sb.__doc.getElementById('aiAnalyzeResults').innerHTML;
+    check('A1 failure shows an error state with a retry, never a success claim',
+          status.includes('AI analysis failed') && results.includes('Try again') && !results.includes('Candidate summary'),
+          status.slice(0, 60));
+  }
+
+  // A2. Re-analyzing the SAME resume/JD/role reuses the session result:
+  // NO second API call. An explicit "Re-run" (user intent) makes one.
+  {
+    const sb = loadApp({});
+    successFetch(sb);
+    sb.__doc.getElementById('resumeInput').value = 'J. Two\nj@x.com\n- built SQL reports\nSkills\nSQL';
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    let calls = sb.__fetches.filter(f => f.url === '/api/analyze-resume').length;
+    check('A2 first analyze fires one AI request', calls === 1, calls + ' calls');
+    const status1 = sb.__doc.getElementById('aiAnalyzeStatus').textContent;
+    const results1 = sb.__doc.getElementById('aiAnalyzeResults').innerHTML;
+    check('A2 success labeled fresh (not reused), with re-run affordance',
+          status1.includes('Fresh Gemini analysis ready') && results1.includes('data-ai-rerun') && results1.includes('Strong ops profile.'),
+          (status1.includes('Fresh Gemini analysis ready') ? 'status ok · ' : 'status WRONG: ' + status1.slice(0, 50) + ' · ') +
+          (results1.includes('data-ai-rerun') ? 're-run button ok' : 're-run button MISSING') +
+          (results1.includes('Strong ops profile.') ? ' · content ok' : ' · content MISSING'));
+    // Same resume again: the click must NOT call the API a second time.
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    calls = sb.__fetches.filter(f => f.url === '/api/analyze-resume').length;
+    check('A2 re-analyze of identical input makes NO new AI request', calls === 1, calls + ' calls');
+    check('A2 reused result is labeled previous, not fresh',
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.includes('Previous AI read of this same resume'),
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.slice(0, 60));
+    // Explicit user re-run does make exactly one new call.
+    fireOnResults(sb, '[data-ai-rerun]');
+    await tick(30);
+    calls = sb.__fetches.filter(f => f.url === '/api/analyze-resume').length;
+    check('A2 explicit re-run makes one new request', calls === 2, calls + ' calls');
+  }
+
+  // A3. After a failure, the retry button makes a real request; on success
+  // the result renders and the failure state is gone.
+  {
+    const sb = loadApp({});
+    let n = 0;
+    sb.fetch = (url, opts) => {
+      sb.__fetches.push({ url, opts });
+      if (url === '/api/analyze-resume') {
+        n += 1;
+        if (n === 1) return Promise.resolve({ ok: true, status: 500, json: () => Promise.resolve({ ok: false, code: 'internal', error: 'Unexpected server error. Try again.' }) });
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(CANNED_ANALYSIS) });
+      }
+      if (url === '/api/health') return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ ok: true, provider: 'gemini' }) });
+      return Promise.reject(new Error('blocked: ' + url));
+    };
+    sb.__doc.getElementById('resumeInput').value = 'J. Three\nj@x.com\n- automated the close\nSkills\nExcel';
+    const before = sb.__doc.getElementById('resumeInput').value;
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    check('A3 HTTP-500 response surfaces as a clear error, resume preserved',
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.includes('AI analysis failed: Unexpected server error')
+          && sb.__doc.getElementById('resumeInput').value === before,
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.slice(0, 70));
+    fireOnResults(sb, '[data-ai-rerun]');
+    await tick(30);
+    check('A3 retry succeeds: AI result rendered, fresh label restored',
+          sb.__doc.getElementById('aiAnalyzeResults').innerHTML.includes('Strong ops profile.')
+          && sb.__doc.getElementById('aiAnalyzeStatus').textContent.includes('Fresh'),
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.slice(0, 60));
+  }
+
+  // ST1. Studio Improve pane: the primary action is one AI button; the meters
+  // and fine-grained operations are tucked under advanced/secondary areas.
+  {
+    const sb = loadApp({});
+    sb.__doc.getElementById('resumeInput').value = fx('it-manager.txt');
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    const html = openStudio(sb);
+    check('ST1 studio primary action: "Improve My Resume with AI" button present',
+          html.includes('data-studio-ai-improve') && html.includes('Improve My Resume with AI'),
+          'primary button present');
+    check('ST1 concise profile summary shown above the action',
+          html.includes('studio-summary') && html.includes('bullets'),
+          'summary chips present');
+    check('ST1 advanced operations remain available but collapsed',
+          html.includes('<details class="studio-adv">') && html.includes('data-studio-ai-go') && html.includes('data-studio-improve-go'),
+          'details wrapper + advanced controls present');
+  }
+
+  // ST2. Primary button -> one /api/resume-studio call with operation=improve;
+  // result is reviewable and the saved profile is never modified.
+  {
+    const sb = loadApp({});
+    sb.__doc.getElementById('resumeInput').value = fx('it-manager.txt');
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    successFetch(sb, true);
+    sb.__doc.getElementById('studio-tab').fire('click');
+    studioClick(sb, 'data-studio-ai-improve');
+    await tick(30);
+    const calls = sb.__fetches.filter(f => f.url === '/api/resume-studio');
+    check('ST2 primary button makes exactly one studio AI call', calls.length === 1, calls.length + ' calls');
+    const body = JSON.parse((calls[0] && calls[0].opts && calls[0].opts.body) || '{}');
+    check('ST2 call uses the improve operation on the saved resume',
+          body.operation === 'improve' && body.resumeText && body.resumeText.length > 0 && !body.candidateInfo,
+          'op=' + body.operation + ' resumeChars=' + (body.resumeText || '').length);
+    const host = sb.__doc.getElementById('studioAiResults');
+    check('ST2 result is reviewable: summary + rewrites + explicit "use" action (no silent overwrite)',
+          host.innerHTML.includes('Tightened the weakest bullets.') && host.innerHTML.includes('data-studio-ai-use'),
+          'summary + use-draft button');
+    const source = JSON.parse(sb.__ls.getItem('resumeProfile')).rawText;
+    check('ST2 saved profile untouched by the AI pass', source === fx('it-manager.txt').trim(), 'rawText identical');
+  }
+
+  // ST3. Studio AI failure: actionable error, one request, nothing shown as done.
+  {
+    const sb = loadApp({});
+    sb.__doc.getElementById('resumeInput').value = fx('it-manager.txt');
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    sb.fetch = (url) => {
+      sb.__fetches.push({ url });
+      if (url === '/api/resume-studio') return Promise.resolve({ ok: true, status: 502, json: () => Promise.resolve({ ok: false, code: 'rate_limit', error: 'Gemini free-tier rate/quota limit reached. Wait a moment and try again.' }) });
+      return Promise.reject(new Error('blocked: ' + url));
+    };
+    openStudio(sb);
+    studioClick(sb, 'data-studio-ai-improve');
+    await tick(30);
+    const calls = sb.__fetches.filter(f => f.url === '/api/resume-studio');
+    const status = sb.__doc.getElementById('studioAiStatus').textContent;
+    check('ST3 failure shows the provider error + retry guidance, one request made',
+          calls.length === 1 && status.includes('AI generation failed') && status.includes('rate/quota limit'),
+          status.slice(0, 80));
+  }
+
+  // A4 (D1). Two inputs of the SAME length, with IDENTICAL first/last 32
+  // characters but different middle content, must NOT collide: the old
+  // length::first32::last32 signature would have reused input 1's cached AI
+  // read for input 2. Exact per-field comparison must make a new request.
+  {
+    const sb = loadApp({});
+    successFetch(sb);
+    const mk = mid => 'X'.repeat(32) + mid + 'Y'.repeat(32); // same length, same head/tail
+    sb.__doc.getElementById('resumeInput').value = mk('alpha');
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    let calls = sb.__fetches.filter(f => f.url === '/api/analyze-resume').length;
+    check('A4 first input analyzed with one request', calls === 1, calls + ' calls');
+    // Same length, same first/last 32 chars, different middle.
+    sb.__doc.getElementById('resumeInput').value = mk('omega');
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    calls = sb.__fetches.filter(f => f.url === '/api/analyze-resume').length;
+    check('A4 different-middle same-shape input makes a NEW request (no collision)',
+          calls === 2, calls + ' calls');
+    check('A4 the new result is labeled fresh, not reused',
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.includes('Fresh'),
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.slice(0, 50));
+  }
+
+  // A5 (D2). Sample-decline path: the user refused to replace a saved profile
+  // with a sample -> NO AI request fires, the status says so, and the saved
+  // profile is untouched.
+  {
+    const userProfile = { rawText: 'Real user resume\n- built things\nSkills\nExcel', skills: ['excel'], totalExperience: 2, education: [], contactInfo: {} };
+    const sb = loadApp({
+      resumeProfile: JSON.stringify(userProfile),
+      resumeProfileMeta: JSON.stringify({ source: 'user', label: 'my resume', savedAt: '2026-10-01' })
+    });
+    const sampleEl = sb.__doc.getElementById('resumeSample');
+    sampleEl.value = 'it-support';
+    // The change handler reads the selected option's label — supply it on the stub.
+    sampleEl.options = [{ text: 'IT Support Specialist (sample)' }];
+    sampleEl.selectedIndex = 0;
+    sampleEl.fire('change');
+    sb.confirm = () => false; // the user declines replacing the saved profile
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    const calls = sb.__fetches.filter(f => f.url === '/api/analyze-resume');
+    check('A5 declined sample: no AI request fired', calls.length === 0, calls.length + ' calls');
+    check('A5 declined sample: status accurately says no AI request was made',
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.includes('No AI request was made'),
+          sb.__doc.getElementById('aiAnalyzeStatus').textContent.slice(0, 60));
+    const meta = JSON.parse(sb.__ls.getItem('resumeProfileMeta'));
+    check('A5 declined sample: saved user profile NOT replaced',
+          meta && meta.source === 'user' && JSON.parse(sb.__ls.getItem('resumeProfile')).rawText === userProfile.rawText,
+          'meta.source=' + (meta && meta.source));
+  }
+
+  // D3a. Studio in-flight guard: a second Studio AI click while the first
+  // request is in flight makes NO additional API call (re-renders re-enable
+  // buttons, so the guard — not just disabled state — must hold it).
+  {
+    const sb = loadApp({});
+    sb.__doc.getElementById('resumeInput').value = fx('it-manager.txt');
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    successFetch(sb, true);
+    openStudio(sb);
+    studioClick(sb, 'data-studio-ai-improve'); // request 1 starts (in flight)
+    const inFlightCalls = sb.__fetches.filter(f => f.url === '/api/resume-studio').length;
+    studioClick(sb, 'data-studio-ai-go');     // concurrent: must be a no-op
+    studioClick(sb, 'data-studio-ai-improve'); // concurrent: must be a no-op
+    check('D3a concurrent Studio clicks make zero extra requests',
+          inFlightCalls === 1 && sb.__fetches.filter(f => f.url === '/api/resume-studio').length === 1,
+          'in-flight calls: ' + inFlightCalls + ', after concurrent clicks: ' + sb.__fetches.filter(f => f.url === '/api/resume-studio').length);
+    await tick(30); // request 1 completes, flag clears
+    studioClick(sb, 'data-studio-ai-go');     // sequential: allowed
+    await tick(30);
+    check('D3a sequential Studio click after completion makes exactly one new request',
+          sb.__fetches.filter(f => f.url === '/api/resume-studio').length === 2,
+          'calls total: ' + sb.__fetches.filter(f => f.url === '/api/resume-studio').length);
+    check('D3a only the latest response updated the visible result',
+          sb.__doc.getElementById('studioAiResults').innerHTML.includes('Tightened the weakest bullets.'),
+          'results show the latest run');
+  }
+
+  // D3b. Operation picker synchronization: running the primary button syncs
+  // the advanced picker to the operation that actually ran, so the two
+  // controls can never disagree about state.aiOp.
+  {
+    const sb = loadApp({});
+    sb.__doc.getElementById('resumeInput').value = fx('it-manager.txt');
+    sb.__doc.getElementById('analyzeResumeBtn').fire('click', {});
+    await tick(30);
+    successFetch(sb, true);
+    openStudio(sb);
+    // Pre-set the picker to a different operation; the primary button must
+    // still run 'improve' AND leave the picker showing 'improve'.
+    sb.__doc.getElementById('studioAiOp').value = 'tailor';
+    studioClick(sb, 'data-studio-ai-improve');
+    await tick(30);
+    const calls = sb.__fetches.filter(f => f.url === '/api/resume-studio');
+    const body = JSON.parse((calls[0] && calls[0].opts && calls[0].opts.body) || '{}');
+    check('D3b primary button overrides the stale picker selection',
+          calls.length === 1 && body.operation === 'improve',
+          'op=' + body.operation);
+    check('D3b advanced picker now shows the operation that ran',
+          sb.__doc.getElementById('studioAiOp').value === 'improve',
+          'picker=' + sb.__doc.getElementById('studioAiOp').value);
+  }
+
+  // ---------- report ----------
+  let pass = 0, fail = 0;
+  for (const r of results) {
+    const mark = r.pass ? 'PASS' : 'FAIL';
+    if (r.pass) pass++; else fail++;
+    console.log(`[${mark}] ${r.name}  →  ${r.detail}`);
+  }
+  console.log(`\n${pass} passed, ${fail} failed (${results.length} checks)`);
+  process.exit(fail ? 1 : 0);
+})();

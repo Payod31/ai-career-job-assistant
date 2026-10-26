@@ -288,6 +288,7 @@ const studioState = {
   aiOp: 'improve',
   aiInstr: '',
   aiSeq: 0,
+  aiInFlight: false, // a Studio AI request is in flight; no concurrent calls
   aiLast: null   // most recent successful AI result {content, operation} (null until generated)
 };
 const STUDIO_SECTIONS = ['contact', 'summary', 'skills', 'experience', 'projects', 'education', 'certifications'];
@@ -544,6 +545,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Monotonic counter so a slower AI response can never overwrite a newer
   // one: each request bumps it, and only the latest response is rendered.
   let aiAnalyzeSeq = 0;
+  // One-click AI dedup (session scope): re-clicking "Analyze Resume" on the
+  // SAME resume+JD+role reuses this session's AI result instead of firing
+  // another API call. A FAILED attempt never populates the cache, so a
+  // retry always makes a real request. Nothing here is ever persisted as
+  // "fresh" across sessions.
+  //
+  // Cache identity is EXACT per-field string equality (raw, jd, role), never
+  // a lossy signature (lengths/prefixes/suffixes can collide for different
+  // texts and would mislabel an earlier read as "this same resume").
+  let aiAnalysisCache = null;  // {raw, jd, role, data} of the last SUCCESSFUL read
+  let aiInFlight = false;       // a request is in flight; ignore re-triggers
+  function aiCacheMatches(entry, raw, jd, role) {
+    return !!entry && entry.raw === raw && entry.jd === jd && entry.role === role;
+  }
   // Active provider/model info (fetched once at startup from the EXISTING
   // /api/health endpoint) so UI labels reflect the real provider instead of
   // hard-coding "OpenAI". Null when the server isn't reachable — labels then
@@ -610,88 +625,40 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.textContent = 'Copied ✓';
     setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
   }
-  // --- AI coach: full rewrites from the local node server.js /api/coach ---
-  // The static app works without it (the template fix lists above are the
-  // fallback); when server.js is running with ANTHROPIC_API_KEY, the model
-  // returns personalized rewrites of the weakest bullets and the same
-  // Apply/Copy machinery puts them into the editor.
-  function renderAiSuggestions(suggestions, notes, host) {
-    if (!host) return;
-    const ai = suggestions.map(s => ({ marker: '', orig: s.original, suggested: s.suggested }));
-    vitalsCtx = vitalsCtx ? Object.assign(vitalsCtx, { ai }) : { impact: [], verb: [], ai };
-    host.innerHTML = (notes ? `<p class="rf-ai-notes">${escAttr(notes)}</p>` : '') +
-      (ai.length
-        ? ai.map((f, i) => `
-          <div class="rf-fix">
-            <div class="rf-fix-orig">• “${escAttr(f.orig)}”</div>
-            <div class="rf-fix-row">
-              <input type="text" class="rf-fix-input" data-kind="ai" data-fix="${i}" value="${escAttr(f.suggested)}" aria-label="AI rewrite">
-              <button type="button" class="rf-fix-btn" data-kind="ai" data-apply-fix="${i}">Apply</button>
-              <button type="button" class="rf-fix-btn" data-kind="ai" data-copy-fix="${i}">Copy</button>
-            </div>
-          </div>`).join('')
-        : '<span class="text-muted">No rewrites came back — try again.</span>');
-  }
-  // Show which coach routes are live (free ones first) from the dev server.
-  async function refreshAiCoachProviders() {
-    const host = document.getElementById('aiCoachProviders');
-    if (!host) return;
-    try {
-      const data = await (await fetch('/api/coach/providers')).json();
-      const ready = (data.providers || []).filter(p => p.ready);
-      host.innerHTML = ready.length
-        ? '⚡ via ' + ready.slice(0, 2).map(p => escAttr(p.label + (p.free ? ' · free' : ''))).join(' / ')
-        : 'no route yet — ' + (ready.length ? '' : escAttr((data.providers || []).map(p => p.hint).join(' or ')));
-    } catch {
-      host.innerHTML = 'AI coach needs <code>node server.js</code> — free keys: Groq (console.groq.com) / Gemini (aistudio.google.com), or Ollama locally (no key, no cloud).';
-    }
-  }
-
-  async function runAiCoach() {
+  // Legacy "AI coach" section (node server.js /api/coach) is gone: the
+  // provider-powered flow is the single AI analysis section below, fired
+  // automatically by the Analyze Resume click. The local per-bullet fix
+  // lists (impact/verb) remain the offline fallback.
+  // --- AI analysis: the "Analyze Resume" click ALSO requests this, so the
+  // --- user never has to find a second button. Dedup rules:
+  //    · same resume+JD+role already read successfully this session ->
+  //      REUSE the result (labeled as a previous read — never as fresh)
+  //      and make NO API call;
+  //    · a request in flight -> ignored, no duplicate submission;
+  //    · a FAILED attempt -> cache stays empty, so any retry (button or
+  //      re-analyzing the same resume) makes a real request again.
+  // A failed request shows its own error state and a retry; it never shows a
+  // stale result as new, and the resume editor is never touched.
+  async function runAiAnalyze(force) {
     const raw = lastAnalyzedRaw;
-    const statusEl = document.getElementById('aiCoachStatus');
-    const btn = document.getElementById('aiCoachBtn');
-    const host = document.getElementById('aiCoachResults');
-    if (!raw) { if (statusEl) statusEl.textContent = 'Analyze your resume first.'; return; }
-    if (btn) { btn.disabled = true; btn.textContent = 'Thinking…'; }
-    if (statusEl) statusEl.textContent = '';
-    try {
-      const targetRole = (document.getElementById('targetRoleSelect') || {}).value || '';
-      const res = await fetch('/api/coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resumeText: raw, targetRole })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) throw new Error(data.error || 'HTTP ' + res.status);
-      renderAiSuggestions(data.suggestions || [], data.notes || '', host);
-      const via = data.provider ? ' via ' + data.provider : '';
-      if (statusEl) statusEl.textContent =
-        (data.suggestions || []).length + ' rewrites ready' + via + ' — edit any line, then Apply or Copy.';
-    } catch (e) {
-      if (statusEl) statusEl.textContent =
-        'AI coach unavailable (' + e.message + '). The template suggestions above still work — ' +
-        'enable AI rewrites free with Groq/Gemini keys or Ollama, then run `node server.js`.';
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '✨ Get AI rewrites'; }
-    }
-  }
-  // --- AI analysis: a FRESH OpenAI read of the currently-selected resume ---
-  // Reads the last analyzed resume text + the current JD (when present), calls
-  // the local Python server, and renders the structured result. A failed
-  // request clears the region and reports the error — it never falls back to a
-  // previous result, and a slower response can't overwrite a newer one.
-  async function runAiAnalyze() {
-    const raw = lastAnalyzedRaw;
-    const btn = document.getElementById('aiAnalyzeBtn');
     const statusEl = document.getElementById('aiAnalyzeStatus');
     const host = document.getElementById('aiAnalyzeResults');
     if (!raw) { if (statusEl) statusEl.textContent = 'Analyze your resume first, then run AI analysis.'; return; }
+    if (aiInFlight) return; // a request for this resume is already in flight
     const jd = ((document.getElementById('jobInput') || {}).value || '').trim();
     const targetRole = ((document.getElementById('targetRoleSelect') || {}).value || '');
+    if (!force && aiCacheMatches(aiAnalysisCache, raw, jd, targetRole)) {
+      // Identical input (byte-for-byte), already read by the AI this
+      // session: no new call.
+      renderAiAnalysis(aiAnalysisCache.data, host, aiAnalysisCache.data.model);
+      if (statusEl) statusEl.textContent = 'Previous AI read of this same resume — no new request was made.';
+      host.insertAdjacentHTML('beforeend',
+        '<button type="button" class="rf-fix-btn rf-ai-rerun" data-ai-rerun>Re-run for a fresh read</button>');
+      return;
+    }
+    aiInFlight = true;
     aiAnalyzeSeq += 1;
     const seq = aiAnalyzeSeq;
-    if (btn) { btn.disabled = true; btn.textContent = 'Analyzing…'; }
     if (host) host.innerHTML = '';
     if (statusEl) statusEl.textContent = 'Contacting ' + (aiProviderWord() || 'the AI provider') + '…';
     try {
@@ -702,14 +669,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json().catch(() => ({}));
       if (seq !== aiAnalyzeSeq) return; // superseded by a newer request
+      // Re-query AFTER the await: a re-render of the results card in the
+      // meantime would have detached the elements captured up top.
+      const liveHost = document.getElementById('aiAnalyzeResults');
+      const liveStatus = document.getElementById('aiAnalyzeStatus');
       if (!res.ok || !data.ok) {
         // data.error is provider-specific (names the right key/model); no
         // hard-coded provider hint here.
         throw new Error(data.error || ('HTTP ' + res.status));
       }
-      renderAiAnalysis(data, host, data.model);
+      aiAnalysisCache = { raw, jd, role: targetRole, data };
+      renderAiAnalysis(data, liveHost, data.model);
       const prov = data.provider === 'gemini' ? 'Gemini' : 'OpenAI';
-      if (statusEl) statusEl.textContent = 'Fresh ' + prov + ' analysis ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
+      if (liveStatus) liveStatus.textContent = 'Fresh ' + prov + ' analysis ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
+      if (liveHost) liveHost.insertAdjacentHTML('beforeend',
+        '<button type="button" class="rf-fix-btn rf-ai-rerun" data-ai-rerun>Re-run for a fresh read</button>');
     } catch (e) {
       if (seq !== aiAnalyzeSeq) return;
       let msg = e && e.message ? e.message : String(e);
@@ -717,13 +691,25 @@ document.addEventListener('DOMContentLoaded', () => {
       // server isn't being served — point the user at the exact command.
       if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
         msg = 'The AI server is not available. Start it with `python server.py` ' +
-          '(see .env for your key and model), then open the app from that server.';
+          'or deploy the backend — the local checks above still work.';
       }
-      if (statusEl) statusEl.textContent = 'AI analysis failed: ' + msg + ' No stale result is shown — try again.';
-      if (host) host.innerHTML = '<div class="rf-ai-err text-danger" style="font-size:0.8rem">' + escAttr(msg) + '</div>';
+      // A failure for THIS input never leaves a success-looking result:
+      // clear any cached entry for the same exact inputs.
+      if (aiCacheMatches(aiAnalysisCache, raw, jd, targetRole)) aiAnalysisCache = null;
+      const liveHost = document.getElementById('aiAnalyzeResults');
+      const liveStatus = document.getElementById('aiAnalyzeStatus');
+      if (liveStatus) liveStatus.textContent = 'AI analysis failed: ' + msg + ' No result is shown — the local checks above are rule-based only.';
+      if (liveHost) liveHost.innerHTML =
+        '<div class="rf-ai-err text-danger" style="font-size:0.8rem">' + escAttr(msg) +
+        ' <button type="button" class="rf-fix-btn rf-ai-rerun" data-ai-rerun>Try again</button></div>';
     } finally {
-      if (seq === aiAnalyzeSeq && btn) { btn.disabled = false; btn.textContent = '🧠 Analyze with AI'; }
+      if (seq === aiAnalyzeSeq) aiInFlight = false;
     }
+  }
+  // One-click flow: called from the "Analyze Resume" handler right after the
+  // local checks render — the user's single action also gets the AI read.
+  function maybeRunAiAnalyze() {
+    if (lastAnalyzedRaw) runAiAnalyze(false);
   }
 
   function _aiList(items) {
@@ -761,8 +747,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   resumeResults.addEventListener('click', e => {
-    if (e.target.closest('#aiCoachBtn')) { runAiCoach(); return; }
-    if (e.target.closest('#aiAnalyzeBtn')) { runAiAnalyze(); return; }
+    // Explicit user action only: "Try again" after a failure, or "Re-run for
+    // a fresh read" after a success — the initial request is fired by the
+    // Analyze Resume click itself, never by a separate second button.
+    if (e.target.closest('[data-ai-rerun]')) { runAiAnalyze(true); return; }
     const applyBtn = e.target.closest('[data-apply-fix]');
     const copyBtn = e.target.closest('[data-copy-fix]');
     if (applyBtn) applyVitalsFix(applyBtn.dataset.kind, +applyBtn.dataset.applyFix, applyBtn);
@@ -987,17 +975,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Analyze resume button handler
+  // Analyze resume button handler. ONE action: local checks run instantly,
+  // and the same click requests the AI analysis (one fresh request unless
+  // this exact resume+JD+role was already read successfully this session).
+  // A failed AI request never hides or rewrites the user's resume text.
   analyzeResumeBtn.addEventListener('click', () => {
-    console.log('[Analyze Resume] Handler started');
     const resumeText = resumeInput.value.trim();
-    console.log('[Analyze Resume] resumeText length:', resumeText.length);
     if (resumeText) {
-      console.log('[Analyze Resume] resumeText not empty');
       resumeData = parseResume(resumeText);
       analyzedResumeSig = inputSig(resumeText);
-      console.log('[Analyze Resume] resumeData keys length:', Object.keys(resumeData).length);
-      console.log('[Analyze Resume] resumeSource:', resumeSource);
       // Rule 3: choosing a sample must not silently replace the user's own
       // saved resume. If this text came from a sample AND a real (user)
       // profile is already saved, ask before overwriting it.
@@ -1008,24 +994,23 @@ document.addEventListener('DOMContentLoaded', () => {
             'You previously saved your own resume on this device. Analyzing the sample "' +
             (resumeSourceLabel || 'sample') + '" will replace that saved profile. Continue?');
           if (!keepGoing) {
-            console.log('[Analyze Resume] Sample branch: user declined to replace profile');
             // Keep the sample in memory for this session only; do not overwrite
-            // the saved user profile.
-            console.log('[Analyze Resume] About to call updateResumeAnalysisUI');
+            // the saved user profile — and no AI request, the user declined
+            // committing to this text.
             updateResumeAnalysisUI();
-            console.log('[Analyze Resume] After updateResumeAnalysisUI');
-            console.log('[Analyze Resume] resumeResultsCard has d-none:', document.getElementById('resumeResultsCard')?.classList.contains('d-none'));
-            console.log('[Analyze Resume] careerFitCard has d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
+            // The re-rendered card's default status line says a request was
+            // made automatically — it was NOT on this path, so state that.
+            const declineStatus = document.getElementById('aiAnalyzeStatus');
+            if (declineStatus) declineStatus.textContent =
+              'No AI request was made — the sample was checked locally for this session only.';
             document.getElementById('resumeResultsCard').classList.remove('d-none');
             document.getElementById('careerFitCard').classList.remove('d-none');
             repopulateMatchRoleFilter(); // relevance-filter target roles for this resume
             if (document.getElementById('targetRoleSelect')?.value) assessTargetRole(); // only a role the user explicitly chose
-            console.log('[Analyze Resume] After removing d-none');
             resumeInputMessage.innerHTML =
               '<div class="alert alert-info mb-0"><strong>Sample analyzed for this session only.</strong> ' +
               'Your saved resume was NOT replaced. To make the sample your profile, click Analyze again and confirm.</div>';
             switchTab('resumeAnalysis');
-            console.log('[Analyze Resume] After switchTab');
             return;
           }
         }
@@ -1038,23 +1023,19 @@ document.addEventListener('DOMContentLoaded', () => {
       discPruneStaleAutoTargets();
       renderDiscoveryUI();
       // Show results panels after analysis
-      console.log('[Analyze Resume] Before removing d-none: resumeResultsCard d-none:', document.getElementById('resumeResultsCard')?.classList.contains('d-none'));
-      console.log('[Analyze Resume] Before removing d-none: careerFitCard d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
       document.getElementById('resumeResultsCard').classList.remove('d-none');
       document.getElementById('careerFitCard').classList.remove('d-none');
       repopulateMatchRoleFilter(); // relevance-filter target roles for this resume
       if (document.getElementById('targetRoleSelect')?.value) assessTargetRole(); // only a role the user explicitly chose
-      console.log('[Analyze Resume] After removing d-none: resumeResultsCard d-none:', document.getElementById('resumeResultsCard')?.classList.contains('d-none'));
-      console.log('[Analyze Resume] After removing d-none: careerFitCard d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
+
+      // One-click flow: the same button that ran the local checks now also
+      // requests the AI read. It reuses this session's result for identical
+      // input instead of calling the API again.
+      maybeRunAiAnalyze();
 
       // Switch to resume analysis tab
-      console.log('[Analyze Resume] About to call switchTab');
       switchTab('resumeAnalysis');
-      console.log('[Analyze Resume] After switchTab');
-      console.log('[Analyze Resume] Final resumeResultsCard d-none:', document.getElementById('resumeResultsCard')?.classList.contains('d-none'));
-      console.log('[Analyze Resume] Final careerFitCard d-none:', document.getElementById('careerFitCard')?.classList.contains('d-none'));
     } else {
-      console.log('[Analyze Resume] resumeText empty');
       alert('Please enter your resume text');
     }
   });
@@ -2243,7 +2224,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }).filter(Boolean);
 
     // Current fix lists for the delegated Apply/Copy handlers on #resumeResults.
-    vitalsCtx = { impact: impactFixes, verb: verbFixes, ai: [] };
+    vitalsCtx = { impact: impactFixes, verb: verbFixes };
     lastAnalyzedRaw = resumeData.rawText || '';
 
     // Keyword coverage: against the TARGET ROLE when one is selected
@@ -2477,7 +2458,12 @@ document.addEventListener('DOMContentLoaded', () => {
           : quantified.length + '/' + bullets.length + ' quantified bullets' + (bulletSource === 'parsed' ? ' (parsed from your job entries)' : '')}</div>
       </div>
 
-      <!-- Vitals band -->
+      <!-- Advanced diagnostics: the full local checkset (meters, per-bullet
+           rewrites, keyword radar, superpowers, all quick wins) stays
+           available but is tucked behind a collapsed section so the default
+           view is a short findings list + the AI analysis, not a wall. -->
+      <details class="rf-adv">
+        <summary><strong>Advanced diagnostics — meters, per-bullet rewrites &amp; keyword radar</strong> <span class="text-muted">(local checks)</span></summary>
       <div class="rf-band">
         <div class="rf-card">
           <h6>Impact Meter</h6>
@@ -2540,46 +2526,46 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- AI coach: optional full rewrites via local node server.js -->
-      <div class="rf-ai">
-        <div class="rf-ai-head">
-          <h6>AI coach</h6>
-          <span class="text-muted" style="font-size:0.7rem">Full, personalized rewrites — <code>node server.js</code> with a free key (Groq / Gemini) or local Ollama</span>
-          <button type="button" class="rf-fix-btn" id="aiCoachBtn">✨ Get AI rewrites</button>
-          <span class="rf-ai-providers text-muted" id="aiCoachProviders" style="font-size:0.72rem"></span>
-          <span class="rf-ai-status text-muted" id="aiCoachStatus" style="font-size:0.72rem"></span>
-        </div>
-        <div id="aiCoachResults"></div>
-      </div>
-
-      <!-- AI analysis: fresh read via the local Python server.py (OpenAI or Gemini) -->
-      <div class="rf-ai rf-ai-openai">
-        <div class="rf-ai-head">
-          <h6>AI analysis${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h6>
-          <span class="text-muted" style="font-size:0.7rem">A fresh AI read of this resume — needs <code>python server.py</code></span>
-          <button type="button" class="rf-fix-btn" id="aiAnalyzeBtn">🧠 Analyze with AI</button>
-          <span class="rf-ai-status text-muted" id="aiAnalyzeStatus" style="font-size:0.72rem"></span>
-        </div>
-        <p class="rf-ai-privacy text-muted" style="font-size:0.72rem">
-          Running this sends <strong>your resume text</strong> (and the job description if present)
-          to your configured AI provider for analysis. Nothing is stored by the app; each click makes a fresh request,
-          and a failed request never shows an old result as new.
-        </p>
-        <div id="aiAnalyzeResults"></div>
-      </div>
-
-      <!-- Quick wins -->
+      ${quickWins.length > 3 ? `
       <div class="rf-quickwins">
-        <h6>Quick Wins, Ranked by Payoff</h6>
+        <h6>Quick Wins, Ranked by Payoff (all ${quickWins.length})</h6>
+        ${quickWins.slice(3).map(w => `
+        <div class="rf-win">
+          <span class="rf-prio ${w.prio}">${w.prio === 'high' ? 'High' : w.prio === 'med' ? 'Med' : 'Low'}</span>
+          <div><strong>${w.action}</strong><span>${w.payoff}</span></div>
+        </div>`).join('')}
+      </div>` : ''}
+      </details>
+
+      <!-- Top findings: the short, visible default (the meters & fix lists
+           above are the expandable detail behind them). -->
+      <div class="rf-quickwins">
+        <h6>Top findings <span class="text-muted" style="font-weight:400;font-size:0.72rem">from local checks</span></h6>
         ${quickWins.slice(0, 3).map(w => `
         <div class="rf-win">
           <span class="rf-prio ${w.prio}">${w.prio === 'high' ? 'High' : w.prio === 'med' ? 'Med' : 'Low'}</span>
           <div><strong>${w.action}</strong><span>${w.payoff}</span></div>
         </div>`).join('')}
       </div>
-    `;
 
-    refreshAiCoachProviders(); // which free routes are live on the dev server
+      <!-- AI analysis: requested automatically by the Analyze Resume click
+           (one action, one request). Shown here with its own fresh /
+           previous / failed state — a failure never masquerades as a result.
+           Rewrites of your resume happen in the Studio tab, never here. -->
+      <div class="rf-ai rf-ai-openai">
+        <div class="rf-ai-head">
+          <h6>AI analysis${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h6>
+          <span class="rf-ai-status text-muted" id="aiAnalyzeStatus" style="font-size:0.72rem">Requested automatically when you clicked Analyze Resume…</span>
+        </div>
+        <p class="rf-ai-privacy text-muted" style="font-size:0.72rem">
+          This sent <strong>your resume text</strong> (and the job description if present) to your
+          configured AI provider — nothing else is sent and nothing is stored. Re-analyzing the same
+          resume reuses this session's result; a failed request shows its error and never shows a
+          stale result as new.
+        </p>
+        <div id="aiAnalyzeResults"></div>
+      </div>
+    `;
 
     // Animate the score ring + count-up number after DOM render
     const resumeScoreEl = document.getElementById('resume-score');
@@ -5825,27 +5811,65 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
               </label>` : ''}
           </div>`;
       }).join('');
+      // Concise summary of the profile's own shape — computed locally from
+      // the saved profile, no API call. It orients the user before the one
+      // primary action: improve with AI.
+      const impLines = (profile.rawText || '').split('\n');
+      const impBullets = impLines.filter(l => /^\s*(?:[-•*]|\d+[.)])\s+\S/.test(l));
+      const impQuant = impBullets.filter(l => /\d/.test(l)).length;
+      const impWordCount = (profile.rawText || '').trim() ? Math.round(profile.rawText.length / 6) : 0;
+      const impRoleLabel = studioState.improveRole && studioRoleOptions().find(r => r.value === studioState.improveRole)
+        ? studioRoleOptions().find(r => r.value === studioState.improveRole).label : '';
       improve = `
-        <div class="studio-profile-chip">Working with your saved profile ${profile.rawText ? '(' + Math.round(profile.rawText.length / 6) + ' words)' : ''} — it is never modified by the studio.</div>
-        <div class="studio-controls">
-          <div class="studio-control">
-            <label for="studioRole">Target role</label>
-            ${roleSelect('studioRole')}
-          </div>
-          <div class="studio-control studio-control-wide">
-            <label for="studioJd">Job description (optional, for keyword alignment)</label>
-            <textarea id="studioJd" class="form-control form-control-sm" rows="3" placeholder="Paste a JD so the studio can check keyword alignment against your real experience">${escAttr(studioState.improveJd)}</textarea>
-          </div>
-          <button type="button" class="btn btn-primary" data-studio-improve-go>Suggest improvements</button>
+        <div class="studio-profile-chip">Working with your saved profile — it is never modified by the studio.</div>
+        <div class="studio-summary">
+          <span class="studio-chip">${impWordCount} words</span>
+          <span class="studio-chip">${impBullets.length} bullets · ${impQuant} with a number</span>
+          ${impRoleLabel ? '<span class="studio-chip studio-chip-info">target: ' + escAttr(impRoleLabel) + '</span>' : ''}
         </div>
+        <!-- PRIMARY ACTION: one click, one AI request that both finds the
+             highest-value improvements and writes the rewrites. The user
+             reviews the result and copies/uses it — nothing is overwritten. -->
         <div class="studio-ai">
           <div class="studio-ai-head">
-            <h3 class="studio-sec-h">AI writing${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h3>
-            <span class="text-muted">Fresh AI generation · needs <code>python server.py</code></span>
+            <h3 class="studio-sec-h">Improve your resume with AI${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h3>
+            <span class="text-muted">One request: the AI flags the weakest parts and writes the rewrites. Your saved resume is never touched.</span>
           </div>
           <div class="studio-controls">
+            <button type="button" class="btn btn-primary" data-studio-ai-improve>✨ Improve My Resume with AI</button>
+            <span class="studio-ai-status text-muted" id="studioAiStatus" style="font-size:0.75rem"></span>
+          </div>
+          <details class="studio-ai-options">
+            <summary>Options — target role, job description, instructions</summary>
+            <div class="studio-controls">
+              <div class="studio-control">
+                <label for="studioRole">Target role</label>
+                ${roleSelect('studioRole')}
+              </div>
+              <div class="studio-control studio-control-wide">
+                <label for="studioJd">Job description (optional, for keyword alignment)</label>
+                <textarea id="studioJd" class="form-control form-control-sm" rows="3" placeholder="Paste a JD so the improvements stay aligned with the role">${escAttr(studioState.improveJd)}</textarea>
+              </div>
+              <div class="studio-control studio-control-wide">
+                <label for="studioAiInstr">Instructions (optional)</label>
+                <textarea id="studioAiInstr" class="form-control form-control-sm" rows="2"
+                  placeholder="e.g. Emphasize leadership; keep it to one page">${escAttr(studioState.aiInstr)}</textarea>
+              </div>
+            </div>
+          </details>
+          <p class="rf-ai-privacy text-muted" style="font-size:0.72rem">
+            This sends your current resume (and the JD if present) to your configured AI provider — it is the
+            only data sent. Where a fact is missing it returns a clearly-marked <em>question</em> — it never invents one.
+          </p>
+          <div id="studioAiResults"></div>
+        </div>
+        <!-- Advanced: the finer-grained AI operations and the offline
+             rule-based suggestions, for users who want to micromanage. -->
+        <details class="studio-adv">
+          <summary>Advanced — other AI operations &amp; local rule-based suggestions</summary>
+          <div class="studio-controls">
             <div class="studio-control">
-              <label for="studioAiOp">Operation</label>
+              <label for="studioAiOp">AI operation</label>
               <select id="studioAiOp" class="form-select form-select-sm" aria-label="AI operation">
                 <option value="improve" ${studioState.aiOp === 'improve' ? 'selected' : ''}>Improve my resume</option>
                 <option value="rewrite_bullets" ${studioState.aiOp === 'rewrite_bullets' ? 'selected' : ''}>Rewrite weak bullets</option>
@@ -5854,20 +5878,9 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
                 <option value="explain" ${studioState.aiOp === 'explain' ? 'selected' : ''}>Explain recommended changes</option>
               </select>
             </div>
-            <div class="studio-control studio-control-wide">
-              <label for="studioAiInstr">Instructions (optional)</label>
-              <textarea id="studioAiInstr" class="form-control form-control-sm" rows="2"
-                placeholder="e.g. Emphasize leadership; keep it to one page">${escAttr(studioState.aiInstr)}</textarea>
-            </div>
-            <button type="button" class="btn btn-primary" data-studio-ai-go>✍️ Generate with AI</button>
-            <span class="studio-ai-status text-muted" id="studioAiStatus" style="font-size:0.75rem"></span>
+            <button type="button" class="btn btn-outline-primary" data-studio-ai-go>Generate with the selected operation</button>
+            <button type="button" class="btn btn-outline-secondary" data-studio-improve-go>Suggest improvements (offline, rule-based)</button>
           </div>
-          <p class="rf-ai-privacy text-muted" style="font-size:0.72rem">
-            Running this sends your current resume/draft (and the JD if present) to your configured AI provider.
-            Where a fact is missing it returns a clearly-marked <em>question</em> — it never invents one.
-          </p>
-          <div id="studioAiResults"></div>
-        </div>
         ${studioState.suggestions.length ? `
           <div class="studio-suggs">
             <h3 class="studio-sec-h">Rule-based suggestions (${studioState.suggestions.length}) — accept, then apply</h3>
@@ -5887,7 +5900,9 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
               <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-copy-draft>Copy draft</button>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-print>Print / Save as PDF</button>
             </div>
-          </div>` : ''}`;
+          </div>` : ''}
+        </details>
+      `;
     }
 
     // ---------- New-draft pane ----------
@@ -6007,7 +6022,7 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
     host.innerHTML = `
       <div class="studio-wf-row" role="group" aria-label="Studio workflow">
-        ${wfBtn('improve', 'Improve my existing resume', 'rule-based suggestions on your saved profile')}
+        ${wfBtn('improve', 'Improve my existing resume', 'one AI improvement pass, plus local checks on your saved profile')}
         ${wfBtn('new', 'New resume for a target role', 'draft built from your verified profile')}
         ${wfBtn('examples', 'Examples & templates', 'local example bullets and structures')}
       </div>
@@ -6023,13 +6038,23 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
   // ---- Event wiring (delegated on the pane host) ----
   function studioHost() { return document.getElementById('studioContent'); }
 
-  // ---- AI writing (OpenAI) — a fresh request every time; never reuses a
-  // ---- previous AI output as the source unless the user copied it into the
-  // ---- draft first. A slow response cannot overwrite a newer one.
-  async function runStudioAi() {
+  // ---- AI writing — a fresh request every time; never reuses a previous AI
+  // ---- output as the source unless the user copied it into the draft first.
+  // ---- A slow response cannot overwrite a newer one. opOverride pins the
+  // ---- operation (the primary "Improve My Resume with AI" button passes
+  // ---- 'improve') regardless of the advanced operation picker.
+  async function runStudioAi(opOverride) {
+    // Hard in-flight guard: a re-render (workflow switch, "Suggest
+    // improvements") re-enables the buttons, so the disabled-state alone
+    // can't prevent a second request from racing the first.
+    if (studioState.aiInFlight) return;
     const profile = getSavedResumeProfile() || {};
     const opEl = document.getElementById('studioAiOp');
-    if (opEl) studioState.aiOp = opEl.value || 'improve';
+    if (opEl && !opOverride) studioState.aiOp = opEl.value || 'improve';
+    if (opOverride) studioState.aiOp = opOverride;
+    // Keep the advanced operation picker honest: it must show the operation
+    // that actually ran / will run, not a stale selection.
+    if (opEl) opEl.value = studioState.aiOp;
     const instrEl = document.getElementById('studioAiInstr');
     if (instrEl) studioState.aiInstr = instrEl.value || '';
     const roleEl = document.getElementById('studioRole');
@@ -6040,7 +6065,9 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
     const statusEl = document.getElementById('studioAiStatus');
     const host = document.getElementById('studioAiResults');
-    const btn = document.querySelector('[data-studio-ai-go]');
+    // Loading state covers BOTH AI buttons so the primary and the advanced
+    // picker can't double-submit while a request is in flight.
+    const btns = Array.from(document.querySelectorAll('[data-studio-ai-improve], [data-studio-ai-go]') || []);
 
     // Source of truth for each operation:
     //   new_draft -> the user's REAL entered data (the saved profile's raw text)
@@ -6057,7 +6084,8 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
     studioState.aiSeq += 1;
     const seq = studioState.aiSeq;
-    if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+    studioState.aiInFlight = true;
+    btns.forEach(b => { b.disabled = true; b.dataset._label = b.textContent; b.textContent = 'Generating…'; });
     if (host) host.innerHTML = '';
     if (statusEl) statusEl.textContent = 'Contacting ' + (aiProviderWord() || 'the AI provider') + '…';
     try {
@@ -6076,22 +6104,35 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
       });
       const data = await res.json().catch(() => ({}));
       if (seq !== studioState.aiSeq) return; // superseded by a newer request
+      // Re-query after the await: a re-render (workflow switch, "Suggest
+      // improvements", draft change) would have detached the elements above.
+      const liveStatus = document.getElementById('studioAiStatus');
+      const liveHost = document.getElementById('studioAiResults');
       if (!res.ok || !data.ok) {
         throw new Error(data.error || ('HTTP ' + res.status));
       }
       studioState.aiLast = { content: data.result && data.result.content, operation: op, model: data.model };
-      renderStudioAi(data, host);
-      if (statusEl) statusEl.textContent = 'AI generation ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
+      renderStudioAi(data, liveHost);
+      if (liveStatus) liveStatus.textContent = 'AI generation ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
     } catch (e) {
       if (seq !== studioState.aiSeq) return;
       let msg = e && e.message ? e.message : String(e);
       if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
         msg = 'The AI server is not available. Start it with `python server.py`, then try again.';
       }
-      if (statusEl) statusEl.textContent = 'AI generation failed: ' + msg + ' No stale result is shown.';
-      if (host) host.innerHTML = '<div class="studio-ai-err text-danger" style="font-size:0.8rem">' + escAttr(msg) + '</div>';
+      const liveStatus = document.getElementById('studioAiStatus');
+      const liveHost = document.getElementById('studioAiResults');
+      if (liveStatus) liveStatus.textContent = 'AI generation failed: ' + msg + ' No stale result is shown — your resume/draft is untouched.';
+      if (liveHost) liveHost.innerHTML = '<div class="studio-ai-err text-danger" style="font-size:0.8rem">' + escAttr(msg) + '</div>';
     } finally {
-      if (seq === studioState.aiSeq && btn) { btn.disabled = false; btn.textContent = '✍️ Generate with AI'; }
+      if (seq === studioState.aiSeq) {
+        studioState.aiInFlight = false;
+        btns.forEach(b => {
+          b.disabled = false;
+          b.textContent = b.dataset._label || (b.hasAttribute('data-studio-ai-improve') ? '✨ Improve My Resume with AI' : 'Generate with the selected operation');
+          delete b.dataset._label;
+        });
+      }
     }
   }
 
@@ -6245,6 +6286,8 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
     el = closeTo('[data-studio-goresume]');
     if (el) { switchTab('resumeAnalysis'); return; }
 
+    el = closeTo('[data-studio-ai-improve]');
+    if (el) { runStudioAi('improve'); return; }
     el = closeTo('[data-studio-ai-go]');
     if (el) { runStudioAi(); return; }
     el = closeTo('[data-studio-ai-use]');

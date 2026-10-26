@@ -32,6 +32,14 @@ node_modules/
 .env.*
 !.env.example
 
+# Python backend (server.py) byproducts
+__pycache__/
+*.pyc
+
+# Local Python virtual environment (never commit; Render builds its own via pip)
+.venv/
+venv/
+
 # Operating system files
 .DS_Store
 Thumbs.db

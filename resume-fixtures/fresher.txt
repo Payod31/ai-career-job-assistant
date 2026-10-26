@@ -1,0 +1,14 @@
+Ananya Rao
+ananya.r@example.com | Bengaluru
+B.Tech, Computer Science, 2024 (graduating)
+
+INTERNSHIP & PROJECTS
+Data Analysis Intern, FinEdge (Jun 2024 - Aug 2024)
+- Built Excel dashboards summarizing weekly churn and conversion
+- Wrote SQL queries to pull order and refund data for 3 reports
+
+Academic projects:
+- Python web scraper cleaning 5,000 product listings
+- A/B tested a pricing page in a class project, +12% click-through
+
+Skills: Excel, SQL, Python, Google Sheets, Power BI

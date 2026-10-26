@@ -10,9 +10,9 @@ const BULLET_MARKER_STRIP_RE = /^(?:[-–—*•●○◦▪▫‣·]|\d+[.)])\s
 
 const sampleData = {
   "sampleResumes": {
-    "ecommerce-ops": "E-commerce Operations Specialist\nPattern Technologies India Pvt Ltd, Pune | 2022 - Present\n- Amazon product onboarding, Master ID creation, flat files, ASIN setup, catalog management, and listing compliance for 500+ SKUs monthly\n- Pattern PXM (Amplifi), digital asset management, A+ Content, Brand Stories, and Amazon Storefronts management\n- Listing suppression resolution, Amazon case management, promotions, Subscribe & Save, and Buy Box monitoring\n- Marketplace operations across Amazon, Walmart, Target, eBay, and TikTok Shop\n- Performance marketing: Meta Ads, Google Ads, Google Analytics, Excel, KPI reporting, and competitive analysis\n- Education: B.Tech Computer Science Engineering, MBA in Marketing\n- Previous data science internship: Python, data analysis, machine learning, NLP exposure\n- Automation projects: bulk image asset downloading, link-to-PDF conversion, Amazon Brand Store media extraction",
-    "marketing-analyst": "Marketing Analyst\nVarious Companies | 2020 - 2022\n- Managed Meta Ads and Google Ads campaigns with monthly budgets of $50K+\n- Analyzed campaign performance using Google Analytics and Excel\n- Created weekly performance reports and optimization recommendations\n- Conducted A/B testing on ad creatives and landing pages\n- Tracked KPIs: ROAS, CTR, CPC, conversion rates\n- Collaborated with design and content teams on campaign assets\n- Education: B.Tech Computer Science Engineering, MBA in Marketing",
-    "business-analyst": "Business Analyst\nPattern Technologies India Pvt Ltd | 2021 - 2023\n- Analyzed marketplace performance data and created actionable insights\n- Built dashboards in Excel and Power BI for stakeholders\n- Documented business processes and identified optimization opportunities\n- Collaborated with tech teams on system requirements\n- Conducted competitive analysis and market research\n- Education: B.Tech Computer Science Engineering, MBA in Marketing",
+    "ecommerce-ops": "E-commerce Operations Specialist\nRetailOps Solutions (sample company), Remote | 2022 - Present\n- Amazon product onboarding, Master ID creation, flat files, ASIN setup, catalog management, and listing compliance for 500+ SKUs monthly\n- PXM / digital asset management, A+ Content, Brand Stories, and Amazon Storefronts management\n- Listing suppression resolution, Amazon case management, promotions, Subscribe & Save, and Buy Box monitoring\n- Marketplace operations across Amazon, Walmart, Target, eBay, and TikTok Shop\n- Performance marketing: Meta Ads, Google Ads, Google Analytics, Excel, KPI reporting, and competitive analysis\n- Education: Bachelor's degree in Business (sample profile)\n- Automation projects: bulk image asset downloading, link-to-PDF conversion, Amazon Brand Store media extraction",
+    "marketing-analyst": "Marketing Analyst\nVarious Companies | 2020 - 2022\n- Managed Meta Ads and Google Ads campaigns with monthly budgets of $50K+\n- Analyzed campaign performance using Google Analytics and Excel\n- Created weekly performance reports and optimization recommendations\n- Conducted A/B testing on ad creatives and landing pages\n- Tracked KPIs: ROAS, CTR, CPC, conversion rates\n- Collaborated with design and content teams on campaign assets\n- Education: Bachelor's degree in Business (sample profile)",
+    "business-analyst": "Business Analyst\nRetailOps Solutions (sample company) | 2021 - 2023\n- Analyzed marketplace performance data and created actionable insights\n- Built dashboards in Excel and Power BI for stakeholders\n- Documented business processes and identified optimization opportunities\n- Collaborated with tech teams on system requirements\n- Conducted competitive analysis and market research\n- Education: Bachelor's degree in Business (sample profile)",
     "digital-marketer": "Digital Marketing Specialist\nBrightWave Digital Agency, Mumbai | 2021 - 2023\n- Managed multi-channel campaigns across Google Ads, Meta Ads, and email marketing for 12 clients\n- Grew organic traffic 40% through SEO content strategy and keyword optimization\n- Built and maintained landing pages, ran A/B tests, improved conversion rates by 25%\n- Created content calendars and managed social media (Instagram, LinkedIn) for B2B clients\n- Wrote copy for ad creatives, email sequences, and blog posts\n- Tools: Google Analytics, HubSpot, Canva, SEMrush, Mailchimp\n- Education: B.Com, Diploma in Digital Marketing (NIIT)",
     "social-media": "Social Media Manager\nTrendPulse Studios, Bangalore | 2022 - Present\n- Manage social media presence for 8 brand clients across Instagram, Twitter, LinkedIn, and YouTube\n- Plan and execute content calendars producing 40+ posts monthly across platforms\n- Grew combined follower base from 50K to 200K in 14 months through content strategy and engagement\n- Run paid social campaigns (Meta, LinkedIn Ads) with monthly budgets up to ₹5L\n- Analyze engagement metrics and produce monthly performance reports in Excel\n- Collaborate with designers, copywriters, and videographers to produce brand content\n- Education: BA Journalism and Mass Communication, Certificate in Social Media Marketing",
     "seo-specialist": "SEO Specialist\nRankWise Digital, Pune | 2021 - 2024\n- Led SEO strategy for 6 e-commerce and SaaS clients, improving organic traffic by 60-120%\n- Conducted technical SEO audits: fixed 200+ crawl issues, improved Core Web Vitals scores\n- Built content briefs and optimized 150+ pages for target keywords\n- Managed link-building outreach, earning 80+ quality backlinks per quarter\n- Tracked rankings with Ahrefs and SEMrush; produced monthly client reports\n- Tools: Ahrefs, SEMrush, Google Search Console, GA4, Screaming Frog, WordPress\n- Education: BSc Computer Science, SEO Certification (Backlinko Academy)",
@@ -259,6 +259,39 @@ let plannerData = {
   customRole: '',    // Custom role entered by user
   plans: {}          // Generated plans for each role
 };
+
+// Resume Studio state. Declared HERE (top of the callback) rather than in the
+// studio module section: init() may call switchTab('studioAnalysis') — via the
+// persisted active tab — before the module's lower consts have been created,
+// and renderStudio() must be safe at that moment (no TDZ crash on reload).
+const studioState = {
+  wf: 'improve',
+  improveRole: '',
+  improveJd: '',
+  suggestions: [],
+  accepted: [],
+  applied: [],
+  snapshot: '',
+  draftText: '',
+  draftName: '',
+  newRole: '',
+  newLevel: 'mid',
+  newStructure: 'ats-single-column',
+  newSections: null,   // null = all sections
+  newJd: '',
+  newDraftText: '',
+  newName: '',
+  exCat: '',
+  exTpl: 'ats-single-column',
+  // OpenAI studio-writing state: chosen operation, free-text instructions, and
+  // a monotonic counter so a slower response can't overwrite a newer one.
+  aiOp: 'improve',
+  aiInstr: '',
+  aiSeq: 0,
+  aiLast: null   // most recent successful AI result {content, operation} (null until generated)
+};
+const STUDIO_SECTIONS = ['contact', 'summary', 'skills', 'experience', 'projects', 'education', 'certifications'];
+const STUDIO_DRAFTS_KEY = 'studioDrafts'; // localStorage key for the studio's own drafts
 
 // Provenance — where the current resume / JD actually came from, so the UI can
 // identify it and the user can tell a freshly-analyzed input apart from a
@@ -508,6 +541,34 @@ document.addEventListener('DOMContentLoaded', () => {
   let vitalsCtx = null;
   // The raw text of the last analyzed resume — what the AI coach sends.
   let lastAnalyzedRaw = '';
+  // Monotonic counter so a slower AI response can never overwrite a newer
+  // one: each request bumps it, and only the latest response is rendered.
+  let aiAnalyzeSeq = 0;
+  // Active provider/model info (fetched once at startup from the EXISTING
+  // /api/health endpoint) so UI labels reflect the real provider instead of
+  // hard-coding "OpenAI". Null when the server isn't reachable — labels then
+  // fall back to neutral "AI" wording. Never contains credentials.
+  let aiProviderInfo = null;
+  async function refreshAiProviderInfo() {
+    try {
+      const res = await fetch('/api/health');
+      const data = await res.json().catch(() => ({}));
+      if (data && data.ok) {
+        aiProviderInfo = { provider: data.provider || '', model: data.model || '' };
+      }
+    } catch (e) { /* server not running — labels stay neutral */ }
+  }
+  function aiProviderWord() {
+    return aiProviderInfo
+      ? (aiProviderInfo.provider === 'gemini' ? 'Gemini' : 'OpenAI')
+      : '';
+  }
+  // e.g. "Gemini · gemini-3.8-flash" / "OpenAI · gpt-5.5" / "" when unknown.
+  function aiProviderTag() {
+    const p = aiProviderWord();
+    if (!p) return '';
+    return aiProviderInfo.model ? p + ' · ' + aiProviderInfo.model : p;
+  }
   function flashInputMessage(text) {
     if (!resumeInputMessage) return;
     resumeInputMessage.innerHTML = `<div class="alert alert-info mb-0">${text}</div>`;
@@ -615,8 +676,93 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btn) { btn.disabled = false; btn.textContent = '✨ Get AI rewrites'; }
     }
   }
+  // --- AI analysis: a FRESH OpenAI read of the currently-selected resume ---
+  // Reads the last analyzed resume text + the current JD (when present), calls
+  // the local Python server, and renders the structured result. A failed
+  // request clears the region and reports the error — it never falls back to a
+  // previous result, and a slower response can't overwrite a newer one.
+  async function runAiAnalyze() {
+    const raw = lastAnalyzedRaw;
+    const btn = document.getElementById('aiAnalyzeBtn');
+    const statusEl = document.getElementById('aiAnalyzeStatus');
+    const host = document.getElementById('aiAnalyzeResults');
+    if (!raw) { if (statusEl) statusEl.textContent = 'Analyze your resume first, then run AI analysis.'; return; }
+    const jd = ((document.getElementById('jobInput') || {}).value || '').trim();
+    const targetRole = ((document.getElementById('targetRoleSelect') || {}).value || '');
+    aiAnalyzeSeq += 1;
+    const seq = aiAnalyzeSeq;
+    if (btn) { btn.disabled = true; btn.textContent = 'Analyzing…'; }
+    if (host) host.innerHTML = '';
+    if (statusEl) statusEl.textContent = 'Contacting ' + (aiProviderWord() || 'the AI provider') + '…';
+    try {
+      const res = await fetch('/api/analyze-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeText: raw, jobDescription: jd, targetRole, requestId: 'a' + seq })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (seq !== aiAnalyzeSeq) return; // superseded by a newer request
+      if (!res.ok || !data.ok) {
+        // data.error is provider-specific (names the right key/model); no
+        // hard-coded provider hint here.
+        throw new Error(data.error || ('HTTP ' + res.status));
+      }
+      renderAiAnalysis(data, host, data.model);
+      const prov = data.provider === 'gemini' ? 'Gemini' : 'OpenAI';
+      if (statusEl) statusEl.textContent = 'Fresh ' + prov + ' analysis ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
+    } catch (e) {
+      if (seq !== aiAnalyzeSeq) return;
+      let msg = e && e.message ? e.message : String(e);
+      // No response at all (fetch rejected or HTTP 404/405) means the local
+      // server isn't being served — point the user at the exact command.
+      if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
+        msg = 'The AI server is not available. Start it with `python server.py` ' +
+          '(see .env for your key and model), then open the app from that server.';
+      }
+      if (statusEl) statusEl.textContent = 'AI analysis failed: ' + msg + ' No stale result is shown — try again.';
+      if (host) host.innerHTML = '<div class="rf-ai-err text-danger" style="font-size:0.8rem">' + escAttr(msg) + '</div>';
+    } finally {
+      if (seq === aiAnalyzeSeq && btn) { btn.disabled = false; btn.textContent = '🧠 Analyze with AI'; }
+    }
+  }
+
+  function _aiList(items) {
+    items = (Array.isArray(items) ? items : []).filter(s => s && String(s).trim());
+    return items.length ? '<ul class="rf-ai-list">' + items.map(x => '<li>' + escAttr(x) + '</li>').join('') + '</ul>'
+      : '<p class="text-muted rf-ai-none">None noted.</p>';
+  }
+  function _aiObjList(items, keys) {
+    items = (Array.isArray(items) ? items : []).filter(o => o && keys.some(k => String(o[k] || '').trim()));
+    if (!items.length) return '<p class="text-muted rf-ai-none">None noted.</p>';
+    return '<ul class="rf-ai-list">' + items.map(o => {
+      const main = keys.map(k => o[k]).map(String).join(' · ').trim();
+      const conf = o.confidence === 'inferred' ? ' <span class="rf-ai-inferred">(inferred)</span>' : '';
+      return '<li>' + escAttr(main) + conf + '</li>';
+    }).join('') + '</ul>';
+  }
+  function renderAiAnalysis(data, host, model) {
+    if (!host) return;
+    const a = data.analysis || {};
+    const sec = (title, body) => body ? `<div class="rf-ai-sec"><h6>${escAttr(title)}</h6>${body}</div>` : '';
+    host.innerHTML =
+      (a.candidate_summary ? `<div class="rf-ai-sec"><h6>Candidate summary</h6><p class="rf-ai-summary">${escAttr(a.candidate_summary)}</p></div>` : '') +
+      sec('Employment history', _aiObjList(a.employment_history, ['role', 'employer', 'dates', 'notes'])) +
+      sec('Experience & skills (with evidence)', _aiObjList(a.experience_and_skills, ['item', 'evidence'])) +
+      sec('Education & certifications', _aiList(a.education_and_certifications)) +
+      sec('Achievements (as stated)', _aiObjList(a.achievements, ['achievement', 'evidence'])) +
+      sec('Strengths', _aiList(a.strengths)) +
+      sec('Transferable skills', _aiList(a.transferable_skills)) +
+      sec('Gaps vs. the job description', _aiList(a.missing_relative_to_jd)) +
+      sec('ATS & formatting concerns', _aiList(a.ats_concerns)) +
+      sec('Missing / ambiguous information', _aiList(a.missing_or_ambiguous)) +
+      sec('Recommendations', _aiList(a.recommendations));
+    host.insertAdjacentHTML('beforeend',
+      `<p class="rf-ai-model text-muted" style="font-size:0.7rem">Generated by ${escAttr(model || 'AI')} — estimates are labeled; nothing is invented.</p>`);
+  }
+
   resumeResults.addEventListener('click', e => {
     if (e.target.closest('#aiCoachBtn')) { runAiCoach(); return; }
+    if (e.target.closest('#aiAnalyzeBtn')) { runAiAnalyze(); return; }
     const applyBtn = e.target.closest('[data-apply-fix]');
     const copyBtn = e.target.closest('[data-copy-fix]');
     if (applyBtn) applyVitalsFix(applyBtn.dataset.kind, +applyBtn.dataset.applyFix, applyBtn);
@@ -660,7 +806,8 @@ document.addEventListener('DOMContentLoaded', () => {
     matchCalculation: document.getElementById('match-tab'),
     applicationTracker: document.getElementById('tracker-tab'),
     jobDiscovery: document.getElementById('discovery-tab'),
-    plannerAnalysis: document.getElementById('planner-tab')
+    plannerAnalysis: document.getElementById('planner-tab'),
+    studioAnalysis: document.getElementById('studio-tab')
   };
 
   const tabPanes = {
@@ -669,7 +816,8 @@ document.addEventListener('DOMContentLoaded', () => {
     matchCalculation: document.getElementById('match-panel'),
     applicationTracker: document.getElementById('tracker-panel'),
     jobDiscovery: document.getElementById('discovery-panel'),
-    plannerAnalysis: document.getElementById('planner-panel')
+    plannerAnalysis: document.getElementById('planner-panel'),
+    studioAnalysis: document.getElementById('studio-panel')
   };
 
   // Show a tab pane and mark its button as active — no Bootstrap dependency
@@ -693,6 +841,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Persist active tab so page refresh restores it
     try { localStorage.setItem('careeraiActiveTab', tabName); } catch (e) { /* storage unavailable */ }
+    // Studio re-renders on activation so drafts/profile changes are fresh.
+    if (tabName === 'studioAnalysis' && typeof renderStudio === 'function') renderStudio();
   }
 
   // Attach direct click handlers to every tab button
@@ -1357,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const skillsMatch = calculateSkillsMatch(resumeData.skills, skills);
-    const expMatch = calculateExperienceMatch(resumeData.totalExperience, careerFitData.experienceRequired);
+    const expMatch = calculateExperienceMatch(effectiveExperience(resumeData).years, careerFitData.experienceRequired);
     const eduMatch = calculateEducationMatch(resumeData.education, careerFitData.educationRequired);
     const overall = Math.round(skillsMatch * 40 + expMatch * 40 + eduMatch * 20);
     const verdict = overall >= 80 ? 'Strong match' : overall >= 60 ? 'Good match' : overall >= 40 ? 'Fair match' : 'Early match';
@@ -1369,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tailoring = [];
     missing.slice(0, 4).forEach(s => tailoring.push(`If you've used or learned “${s}” anywhere — work, projects, coursework — add it to your skills section; this JD names it explicitly.`));
     if (expMatch < 0.7 && careerFitData.experienceRequired && careerFitData.experienceRequired !== 'Not specified') {
-      tailoring.push(`The role asks for ${careerFitData.experienceRequired}; you show ${formatExperienceYears(resumeData.totalExperience)} overall. Frame your most relevant work with this JD's own wording — no invented years, just sharper relevance.`);
+      tailoring.push(`The role asks for ${careerFitData.experienceRequired}; you show ${displayExperience(resumeData).text} overall. Frame your most relevant work with this JD's own wording — no invented years, just sharper relevance.`);
     }
     if (eduMatch < 0.7 && careerFitData.educationRequired && careerFitData.educationRequired !== 'Not specified') {
       tailoring.push(`Make your ${careerFitData.educationRequired} credential visible near the top of your resume where it can't be missed.`);
@@ -1805,7 +1955,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (full) {
       return {
         skills: Array.isArray(full.skills) ? full.skills : [],
-        experience: Number(full.totalExperience) || 0,
+        experience: effectiveExperience(full).years,
         education: Array.isArray(full.education) ? full.education.length : 0,
         contactInfo: full.contactInfo || {}
       };
@@ -1959,7 +2109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Calculate a resume quality score (simplified)
     const skillScore = Math.min(resumeData.skills.length * 5, 30); // Up to 30 points for skills
-    const expScore = Math.min(resumeData.totalExperience * 3, 30); // Up to 30 points for experience
+    const expScore = Math.min(effectiveExperience(resumeData).years * 3, 30); // Up to 30 points for experience
     const eduScore = resumeData.education.length > 0 ? 20 : 0; // 20 points for education
     const contactScore = (resumeData.contactInfo.email || resumeData.contactInfo.phone) ? 10 : 0; // 10 points for contact
     const resumeScoreValue = skillScore + expScore + eduScore + contactScore;
@@ -2004,6 +2154,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(line => line.trim())
       .filter(Boolean);
     let bullets = bulletLines.filter(line => BULLET_LINE_RE.test(line));
+    let bulletSource = bullets.length > 0 ? 'markers' : 'none';
     // One-line pastes carry no explicit bullet markers: the phrases between
     // the "•"/"·" separators ARE the bullets. Skip sections that are clearly
     // headers (EDUCATION / SKILLS / …) so the meter only counts real bullets.
@@ -2017,6 +2168,17 @@ document.addEventListener('DOMContentLoaded', () => {
       bullets = segments.filter(l =>
         l.split(/\s+/).length >= 3 && l.length >= 12 &&
         !/\b(EDUCATION|EXPERIENCE|SKILLS|SUMMARY|OBJECTIVE|PROJECTS)\b/.test(l));
+      if (bullets.length > 0) bulletSource = 'pasted';
+    }
+    // No marker lines at all (common after multi-line PDF/DOCX extraction):
+    // fall back to the responsibilities parsed from employment entries, so
+    // the meters reflect real work instead of a silent 0. Labeled, not hidden.
+    if (bullets.length === 0) {
+      bullets = ((resumeData.experience && resumeData.experience.dateRanges) || [])
+        .map(range => (range.responsibilities || '').trim())
+        .filter(Boolean)
+        .map(text => text.replace(/\.+$/, ''));
+      if (bullets.length > 0) bulletSource = 'parsed';
     }
     const quantified = bullets.filter(line => /\d/.test(line));
     const impactPct = bullets.length ? Math.round(quantified.length / bullets.length * 100) : 0;
@@ -2084,23 +2246,44 @@ document.addEventListener('DOMContentLoaded', () => {
     vitalsCtx = { impact: impactFixes, verb: verbFixes, ai: [] };
     lastAnalyzedRaw = resumeData.rawText || '';
 
-    const inDemandSkills = ['excel', 'sql', 'power bi', 'tableau', 'python', 'google analytics',
-      'data analysis', 'reporting', 'meta ads', 'google ads', 'process improvement', 'stakeholder management'];
+    // Keyword coverage: against the TARGET ROLE when one is selected
+    // (Match tab "Target Role" or first Planner role); otherwise a broad,
+    // clearly-generic vocabulary — never presented as mandatory.
+    let inDemandSkills;
+    let atsVocabSource = 'generic';
+    const matchRoleKey = targetRoleSelect ? targetRoleSelect.value : '';
+    const targetRoleKey = matchRoleKey || (plannerData.selectedRoles && plannerData.selectedRoles[0]) || '';
+    const atsRoleLabel = (targetRoleKey && ALL_ROLES_FLAT[targetRoleKey])
+      ? (ALL_ROLES_FLAT[targetRoleKey].name || targetRoleKey) : '';
+    if (targetRoleKey && ALL_ROLES_FLAT[targetRoleKey]) {
+      inDemandSkills = [...new Set((ALL_ROLES_FLAT[targetRoleKey].skills || []).map(canonicalSkill))];
+      atsVocabSource = 'target:' + targetRoleKey;
+    }
+    if (!inDemandSkills || inDemandSkills.length === 0) {
+      inDemandSkills = ['excel', 'sql', 'python', 'power bi', 'tableau', 'google analytics',
+        'data analysis', 'reporting', 'project management', 'stakeholder management',
+        'process improvement', 'communication'];
+    }
     const haveSet = new Set((resumeData.skills || []).map(canonicalSkill));
     const atsMissing = inDemandSkills.filter(s => !haveSet.has(s));
     const atsScore = Math.round((inDemandSkills.length - atsMissing.length) / inDemandSkills.length * 100);
 
-    const impactCopy = impactPct >= 70
-      ? 'Strong — most of your bullets carry hard numbers. That\'s rare and recruiters notice it immediately.'
-      : impactPct >= 40
-        ? 'Decent base. A few more numbers on your top roles would make impact obvious at a glance.'
-        : 'Low. Recruiters scan numbers first — add before/after figures to your top 3 bullets this week.';
+    const impactCopy = bulletSource === 'none'
+      ? 'No bullet lines detected yet — write 2–3 short bullets per role with measurable results.'
+      : impactPct >= 70
+        ? 'Strong — most of your bullets carry hard numbers. That\'s rare and recruiters notice it immediately.'
+        : impactPct >= 40
+          ? 'Decent base. A few more numbers on your top roles would make impact obvious at a glance.'
+          : 'Low. Recruiters scan numbers first — add before/after figures to your top 3 bullets this week.' +
+            (bulletSource === 'parsed' ? ' (These bullets were parsed from your job entries — visible in the editor, scored here.)' : '');
 
-    const verbCopy = verbPct >= 60
-      ? 'Punchy openings throughout. Your bullets read like achievements, not job descriptions.'
-      : verbPct >= 30
-        ? 'Good start. Swap "responsible for…" openers for "led…", "built…", "reduced…" — same work, stronger read.'
-        : 'Most bullets open weakly. Start with a verb: "Led X", "Automated Y" — instant credibility.';
+    const verbCopy = bulletSource === 'none'
+      ? 'No bullets found to score. Once you add them, open each with a verb: "Led X", "Automated Y".'
+      : verbPct >= 60
+        ? 'Punchy openings throughout. Your bullets read like achievements, not job descriptions.'
+        : verbPct >= 30
+          ? 'Good start. Swap "responsible for…" openers for "led…", "built…", "reduced…" — same work, stronger read.'
+          : 'Most bullets open weakly. Start with a verb: "Led X", "Automated Y" — instant credibility.';
 
     // Auto-detected standout tiles (top 3)
     const superpowers = [];
@@ -2128,9 +2311,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Ranked quick wins
     const quickWins = [];
-    if (impactPct < 60) quickWins.push({ prio: 'high', action: `Add numbers to your top 3 bullets (before → after, $ saved, % improved)`, payoff: 'Recruiters read numbers first — instant credibility lift' });
+    if (bulletSource === 'none') quickWins.push({ prio: 'high', action: 'Write 2–3 short bullets per role with measurable outcomes', payoff: 'Bullets are where recruiters see impact' });
+    else if (impactPct < 60) quickWins.push({ prio: 'high', action: `Add numbers to your top 3 bullets (before → after, $ saved, % improved)`, payoff: 'Recruiters read numbers first — instant credibility lift' });
     const gapSkills = ['sql', 'power bi', 'tableau', 'excel', 'python'].filter(s => atsMissing.includes(s));
-    if (gapSkills.length) quickWins.push({ prio: 'high', action: `Sprint on ${gapSkills.slice(0, 2).map(s => ({ sql: 'SQL', 'power bi': 'Power BI', 'kpi tracking': 'KPI tracking' }[s] || s.charAt(0).toUpperCase() + s.slice(1))).join(' + ')} (${playbookFor(gapSkills[0]).time})`, payoff: 'Closes your biggest ATS gap — most analyst JDs list it' });
+    if (gapSkills.length) quickWins.push({ prio: 'high', action: `Sprint on ${gapSkills.slice(0, 2).map(s => ({ sql: 'SQL', 'power bi': 'Power BI', 'kpi tracking': 'KPI tracking' }[s] || s.charAt(0).toUpperCase() + s.slice(1))).join(' + ')} (${playbookFor(gapSkills[0]).time})`,
+      payoff: atsVocabSource === 'generic' ? 'Closes your biggest ATS gap — most analyst JDs list it'
+        : `Closes the biggest gap against your target role (${atsRoleLabel})` });
     if (!haveSet.has('stakeholder management') && !haveSet.has('process improvement')) quickWins.push({ prio: 'med', action: 'Name the soft skills you already use: stakeholder management, process improvement', payoff: 'One line each — they are ATS keywords, not fluff' });
     if (verbPct < 50) quickWins.push({ prio: 'med', action: 'Rewrite bullet openers as action verbs (led, built, automated)', payoff: 'Turns duty-lists into achievements' });
     if (quickWins.length === 0) quickWins.push({ prio: 'low', action: 'Your resume is in strong shape — tailor the top third to each application', payoff: 'Keeps every submission JD-specific' });
@@ -2144,20 +2330,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const normChecks = [
       { ok: !!(resumeData.contactInfo && resumeData.contactInfo.email), label: 'Reachable', tip: 'No email detected — add a professional one; recruiters need a way to reach you' },
       { ok: wordCount >= 250 && wordCount <= 1500, label: wordCount ? `Length in sweet spot · ${wordCount} words` : 'Length in sweet spot', tip: wordCount < 250 ? 'Too thin — 400-800 words is the recruiter sweet spot' : 'Very long — trim to what a recruiter can scan in 15 seconds' },
-      { ok: impactPct >= 50, label: 'Quantified impact', tip: 'Fewer than half your bullets carry numbers — add before/after figures' },
-      { ok: verbPct >= 50, label: 'Action-verb openers', tip: 'Start bullets with led / built / automated, not "responsible for"' },
+      { ok: bulletSource === 'none' ? false : impactPct >= 50, label: bulletSource === 'none' ? 'No bullets detected' : 'Quantified impact', tip: bulletSource === 'none' ? 'No bullet lines were found — write 2–3 short bullets per role with measurable outcomes' : 'Fewer than half your bullets carry numbers — add before/after figures' },
+      { ok: bulletSource === 'none' ? false : verbPct >= 50, label: bulletSource === 'none' ? 'No bullet openers to score' : 'Action-verb openers', tip: bulletSource === 'none' ? 'Once bullets exist, start them with led / built / automated' : 'Start bullets with led / built / automated, not "responsible for"' },
       { ok: responsibleHits === 0, label: 'No weak phrasing', tip: `${responsibleHits}× "responsible for" found — rewrite as owned outcomes` },
       { ok: firstPersonHits === 0, label: 'No first-person pronouns', tip: 'HR norm: a resume reads as fact, not as a letter to someone' },
       { ok: (resumeData.skills || []).length >= 10, label: 'Skill depth', tip: 'Add the tools you used in each role — depth is what an ATS ranks on' },
-      { ok: atsScore >= 60, label: 'In-demand keywords', tip: `Missing: ${atsMissing.slice(0, 3).map(s => ({ sql: 'SQL', 'power bi': 'Power BI' }[s] || s.charAt(0).toUpperCase() + s.slice(1))).join(', ')}${atsMissing.length > 3 ? '…' : ''}` },
+      {
+        ok: atsScore >= 60,
+        label: atsVocabSource === 'generic' ? 'Generic keyword coverage' : 'Target-role keywords',
+        tip: atsVocabSource === 'generic'
+          ? (atsMissing.length
+            ? `Not detected: ${atsMissing.slice(0, 3).join(', ')} — coverage across a broad in-demand vocabulary; set a target role in the Match tab for a role-specific list`
+            : 'Good coverage across a broad in-demand vocabulary')
+          : `Against ${atsRoleLabel}: ${atsMissing.length ? 'missing ' + atsMissing.slice(0, 3).join(', ') + (atsMissing.length > 3 ? ', …' : '') : 'all detected'}`
+      },
       { ok: (resumeData.education || []).length > 0, label: 'Education present', tip: 'List your degree(s) — many ATS filters require a match' },
-      { ok: (resumeData.totalExperience || 0) > 0, label: 'Dates parseable', tip: 'Use MM/YYYY date ranges so an ATS can compute your tenure' }
+      {
+        ok: displayExperience(resumeData).label !== 'No dates found',
+        label: 'Experience evidence',
+        tip: displayExperience(resumeData).label === 'No dates found'
+          ? 'Add date ranges (e.g., Jan 2019 – Present) or state total years of experience'
+          : displayExperience(resumeData).label === 'Stated exp.'
+            ? 'Your stated figure is used — add parseable date ranges (e.g., Mar 2019 – Present) so an ATS can verify it'
+            : displayExperience(resumeData).label === 'Experience (<0.5y dated)'
+              ? 'Less than half a year of parseable dates — add MM/YYYY ranges to make tenure machine-checkable'
+              : 'Employment dates parsed — an ATS can compute your tenure'
+      }
     ];
     const atsPass = normChecks.filter(c => c.ok).length;
     const atsReadiness = Math.round(atsPass / normChecks.length * 100);
     const atsVerdict = atsReadiness >= 80 ? 'HR-ready' : atsReadiness >= 60 ? 'Almost there' : 'Needs work';
 
     const levelWord = score >= 80 ? 'sharp' : score >= 60 ? 'solid' : score >= 40 ? 'developing' : 'early-stage';
+
+    // Experience display label (Commit B item 1): presentation mapping only —
+    // reads the profile-level experienceSource so sub-0.5y values show as
+    // "dated but thin", never "no dates" and never a stated claim.
+    const expStat = displayExperience(resumeData);
+
+    // Skills the candidate stated (SKILLS/TOOLS sections) that keyword
+    // detection did not already catch — shown as their own group, never
+    // concatenated or folded silently into another category.
+    const detectedSkills = new Set([...(resumeData.functionalSkills || []), ...(resumeData.technicalSkills || []),
+      ...(resumeData.marketplacePlatforms || []), ...(resumeData.tools || []),
+      ...(resumeData.analytics || []), ...(resumeData.transferableSkills || [])].map(canonicalSkill));
+    const statedOnly = (resumeData.statedSkills || []).filter(s => !detectedSkills.has(canonicalSkill(s)));
 
     resumeResults.innerHTML = `
       <!-- Score Hero Section -->
@@ -2183,7 +2400,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="score-stat-lbl">Skills</span>
             </div>
             <div class="score-stat">
-              <span class="score-stat-val">${formatExperienceYears(resumeData.totalExperience)}</span>
+              <span class="score-stat-val">${expStat.text}${expStat.label !== 'Experience' ? ' ' + expStat.label.toLowerCase() : ''}</span>
               <span class="score-stat-lbl">Experience</span>
             </div>
             <div class="score-stat">
@@ -2212,7 +2429,12 @@ document.addEventListener('DOMContentLoaded', () => {
             { color: '#FFB454', name: 'Marketplace', skills: resumeData.marketplacePlatforms },
             { color: '#5ECFE8', name: 'Tools', skills: resumeData.tools },
             { color: '#FF6B9D', name: 'Analytics', skills: resumeData.analytics },
-            { color: '#A3A9B8', name: 'Transferable', skills: resumeData.transferableSkills }
+            { color: '#A3A9B8', name: 'Transferable', skills: resumeData.transferableSkills },
+            // Only when the candidate lists skills keyword-detection missed —
+            // always its own labeled group, merged into nothing else.
+            ...(statedOnly.length
+              ? [{ color: '#7dd3a0', name: 'As listed by you', skills: statedOnly }]
+              : [])
           ];
           const present = sections.filter(s => s.skills && s.skills.length > 0);
           if (!present.length) return '<div class="p-4"><span class="text-muted">No skills detected yet — add a skills section with concrete tools and technologies.</span></div>';
@@ -2230,7 +2452,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- ATS & HR norms -->
       <div class="ats-norms">
         <div class="ats-norms-head">
-          <div class="ats-norms-score"><strong>${atsReadiness}%</strong><span>ATS &amp; HR</span></div>
+          <div class="ats-norms-score"><strong>${atsReadiness}%</strong><span>ATS &amp; HR (estimate)</span></div>
           <div>
             <h6>${atsVerdict} — ${atsPass} of ${normChecks.length} checks pass</h6>
             <p>${atsPass === normChecks.length
@@ -2250,7 +2472,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <!-- What a recruiter sees in 5 seconds -->
       <div class="rf-pitch">
         <span class="rf-pitch-label">What a recruiter sees in 5 seconds</span>
-        <div>${levelWord} profile · ${formatExperienceYears(resumeData.totalExperience)} · ${resumeData.skills.length} detected skills · ${quantified.length}/${bullets.length || 0} quantified bullets</div>
+        <div>${levelWord} profile · ${expStat.text} · ${resumeData.skills.length} skills · ${bulletSource === 'none'
+          ? 'no bullets detected'
+          : quantified.length + '/' + bullets.length + ' quantified bullets' + (bulletSource === 'parsed' ? ' (parsed from your job entries)' : '')}</div>
       </div>
 
       <!-- Vitals band -->
@@ -2296,13 +2520,17 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>` : ''}
         </div>
         <div class="rf-card">
-          <h6>ATS Keyword Radar <span class="text-muted" style="font-weight:400;font-size:0.72rem">· in-demand set</span></h6>
+          <h6>ATS Keyword Radar <span class="text-muted" style="font-weight:400;font-size:0.72rem">${atsVocabSource === 'generic' ? '· in-demand set' : '· ' + escAttr(atsRoleLabel)}</span></h6>
           <div class="rf-dots">
             ${inDemandSkills.map(s => `<span class="rf-dot ${haveSet.has(s) ? 'on' : ''}">${({ sql: 'SQL', 'power bi': 'Power BI' }[s] || s.charAt(0).toUpperCase() + s.slice(1))}</span>`).join('')}
           </div>
           <p>${atsMissing.length
-            ? `Missing: ${atsMissing.slice(0, 4).map(s => ({ sql: 'SQL', 'power bi': 'Power BI' }[s] || s.charAt(0).toUpperCase() + s.slice(1))).join(', ')}${atsMissing.length > 4 ? '…' : ''}. Add these to rise in ATS ranking.`
-            : 'Full coverage of the in-demand set — you\'ll pass the keyword screen.'}</p>
+            ? atsVocabSource === 'generic'
+              ? `Not detected: ${atsMissing.slice(0, 4).join(', ')}${atsMissing.length > 4 ? '…' : ''} — coverage across a broad in-demand vocabulary. Pick a target role in the Match tab for a role-specific list.`
+              : `Against ${atsRoleLabel} — missing: ${atsMissing.slice(0, 4).join(', ')}${atsMissing.length > 4 ? '…' : ''}. Add these to stay aligned with your target role.`
+            : atsVocabSource === 'generic'
+              ? 'Full coverage of the in-demand set — you\'ll pass the keyword screen.'
+              : `Full coverage of the ${atsRoleLabel} keyword set — you\'ll pass the keyword screen.`}</p>
         </div>
         <div class="rf-card">
           <h6>Your Superpowers</h6>
@@ -2322,6 +2550,22 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="rf-ai-status text-muted" id="aiCoachStatus" style="font-size:0.72rem"></span>
         </div>
         <div id="aiCoachResults"></div>
+      </div>
+
+      <!-- AI analysis: fresh read via the local Python server.py (OpenAI or Gemini) -->
+      <div class="rf-ai rf-ai-openai">
+        <div class="rf-ai-head">
+          <h6>AI analysis${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h6>
+          <span class="text-muted" style="font-size:0.7rem">A fresh AI read of this resume — needs <code>python server.py</code></span>
+          <button type="button" class="rf-fix-btn" id="aiAnalyzeBtn">🧠 Analyze with AI</button>
+          <span class="rf-ai-status text-muted" id="aiAnalyzeStatus" style="font-size:0.72rem"></span>
+        </div>
+        <p class="rf-ai-privacy text-muted" style="font-size:0.72rem">
+          Running this sends <strong>your resume text</strong> (and the job description if present)
+          to your configured AI provider for analysis. Nothing is stored by the app; each click makes a fresh request,
+          and a failed request never shows an old result as new.
+        </p>
+        <div id="aiAnalyzeResults"></div>
       </div>
 
       <!-- Quick wins -->
@@ -2352,14 +2596,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Also update Career Fit experience fields when resume is analyzed
     if (totalExperience && relevantExperience && seniorityLevel) {
-      totalExperience.textContent = formatExperienceYears(resumeData.totalExperience);
+      totalExperience.textContent = expStat.label === 'Experience'
+        ? expStat.text : expStat.text + ' ' + expStat.label.toLowerCase();
       relevantExperience.textContent = formatExperienceYears(resumeData.relevantExperience);
 
-      // Determine seniority level
+      // Determine seniority level (evidence-aware years; ladder thresholds unchanged)
+      const seniorYears = effectiveExperience(resumeData).years;
       let level = 'Entry Level';
-      if (resumeData.totalExperience >= 8) level = 'Senior';
-      else if (resumeData.totalExperience >= 5) level = 'Mid-Senior';
-      else if (resumeData.totalExperience >= 2) level = 'Mid Level';
+      if (seniorYears >= 8) level = 'Senior';
+      else if (seniorYears >= 5) level = 'Mid-Senior';
+      else if (seniorYears >= 2) level = 'Mid Level';
       seniorityLevel.textContent = level;
     }
 
@@ -2372,8 +2618,10 @@ document.addEventListener('DOMContentLoaded', () => {
       careerFitScore.textContent = '0%';
       careerFitFeedback.textContent = 'Pick a target role to see your career fit, or analyze a job description instead — nothing is assumed.';
 
-      // Clear experience fields
-      if (totalExperience) totalExperience.textContent = formatExperienceYears(resumeData.totalExperience);
+      // Clear experience fields (evidence-aware label — a fresh hire's short
+      // dated history is shown as such, never as "no dates found")
+      if (totalExperience) totalExperience.textContent = expStat.label === 'Experience'
+        ? expStat.text : expStat.text + ' ' + expStat.label.toLowerCase();
       if (relevantExperience) relevantExperience.textContent = '0 years';
       if (seniorityLevel) seniorityLevel.textContent = 'Entry Level';
       if (poorFitExplanation) poorFitExplanation.textContent = '';
@@ -2639,7 +2887,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Both analyzed — compute the match breakdown
     const skillsMatch = calculateSkillsMatch(resumeData.skills, careerFitData.keySkills || []);
-    const expMatch = calculateExperienceMatch(resumeData.totalExperience, careerFitData.experienceRequired);
+    const expMatch = calculateExperienceMatch(effectiveExperience(resumeData).years, careerFitData.experienceRequired);
     const eduMatch = calculateEducationMatch(resumeData.education, careerFitData.educationRequired);
     const overall = Math.round((skillsMatch * 0.4 + expMatch * 0.4 + eduMatch * 0.2) * 100);
 
@@ -2764,7 +3012,7 @@ document.addEventListener('DOMContentLoaded', () => {
   role.keySkills
 );
     const experienceMatch = calculateTieredExperienceMatch(
-      Number(resumeData.totalExperience) || 0,
+      effectiveExperience(resumeData).years,
       role.experience
     );
     const educationMatch = calculateTieredEducationMatch(
@@ -2818,20 +3066,21 @@ document.addEventListener('DOMContentLoaded', () => {
         `Estimated fit for ${role.name}, based on the skills and experience detected in your resume.`;
     }
 
+    const expDisp = displayExperience(resumeData);
+
     if (totalExperience) {
-      totalExperience.textContent = formatExperienceYears(
-        Number(resumeData.totalExperience) || 0
-      );
+      totalExperience.textContent = expDisp.label === 'Experience'
+        ? expDisp.text : expDisp.text + ' ' + expDisp.label.toLowerCase();
     }
 
     if (relevantExperience) {
       relevantExperience.textContent = formatExperienceYears(
-        (Number(resumeData.totalExperience) || 0) * experienceMatch
+        effectiveExperience(resumeData).years * experienceMatch
       );
     }
 
     if (seniorityLevel) {
-      const years = Number(resumeData.totalExperience) || 0;
+      const years = effectiveExperience(resumeData).years;
       seniorityLevel.textContent =
         years >= 8 ? 'Senior' :
         years >= 5 ? 'Mid-Senior' :
@@ -2845,7 +3094,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const eduPct = Math.round(educationMatch * 100);
     const capWord = v => ({ sql: 'SQL', 'power bi': 'Power BI', 'kpi tracking': 'KPI tracking' }[v]
       || v.charAt(0).toUpperCase() + v.slice(1));
-    const years = Number(resumeData.totalExperience) || 0;
+    const years = effectiveExperience(resumeData).years;
 
     const skillRows = missingSkills.slice(0, 4).map(skill => {
       const pb = playbookFor(skill);
@@ -3030,7 +3279,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Calculate match score based on skills, experience, and education
     const skillsMatch = calculateSkillsMatch(resumeData.skills, careerFitData.keySkills || []);
-    const experienceMatch = calculateExperienceMatch(resumeData.totalExperience, careerFitData.experienceRequired);
+    const experienceMatch = calculateExperienceMatch(effectiveExperience(resumeData).years, careerFitData.experienceRequired);
     const educationMatch = calculateEducationMatch(resumeData.education, careerFitData.educationRequired);
 
     // Weighted average (skills: 40%, experience: 40%, education: 20%)
@@ -3054,26 +3303,33 @@ document.addEventListener('DOMContentLoaded', () => {
       ring.style.stroke = scorePct >= 80 ? accentHex : scorePct >= 60 ? '#FFB454' : '#FF6B6B';
     }
 
-    // Update career fit feedback
+    // Update career fit feedback — thresholds are percentages, so compare
+    // scorePct, not the 0–1 matchScore (comparing the fraction to 80/60/40
+    // made "Limited match" the only reachable verdict, contradicting a ring
+    // that could show 92%).
     let feedback = '';
-    if (matchScore >= 80) {
+    if (scorePct >= 80) {
       feedback = 'Excellent match! Your resume strongly aligns with this job description.';
-    } else if (matchScore >= 60) {
+    } else if (scorePct >= 60) {
       feedback = 'Good match! Your resume shows strong alignment with this job description.';
-    } else if (matchScore >= 40) {
+    } else if (scorePct >= 40) {
       feedback = 'Fair match. Consider highlighting more relevant skills and experience.';
     } else {
       feedback = 'Limited match. You may need to gain more relevant experience or skills for this role.';
     }
     careerFitFeedback.textContent = feedback;
 
-    // Update experience fields
+    // Update experience fields — the stated-vs-dated label must stay
+    // consistent with the resume tab (Commit B displayExperience wording).
     if (totalExperience && relevantExperience && seniorityLevel) {
-      totalExperience.textContent = formatExperienceYears(resumeData.totalExperience);
-      relevantExperience.textContent = formatExperienceYears(Math.round(resumeData.totalExperience * experienceMatch));
+      const expDisp = displayExperience(resumeData);
+      totalExperience.textContent = expDisp.label === 'Experience'
+        ? expDisp.text : expDisp.text + ' ' + expDisp.label.toLowerCase();
+      const effectiveYears = effectiveExperience(resumeData).years;
+      relevantExperience.textContent = formatExperienceYears(Math.round(effectiveYears * experienceMatch));
 
       // Determine seniority level based on matched experience
-      const matchedExperience = resumeData.totalExperience * experienceMatch;
+      const matchedExperience = effectiveYears * experienceMatch;
       let level = 'Entry Level';
       if (matchedExperience >= 8) level = 'Senior';
       else if (matchedExperience >= 5) level = 'Mid-Senior';
@@ -3119,11 +3375,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let matches = 0;
     jobSkillsLower.forEach(jobSkill => {
-      // Check for exact match or substring match
-      if (resumeSkillsLower.some(resumeSkill =>
-        resumeSkill.includes(jobSkill) || jobSkill.includes(resumeSkill))) {
-        matches++;
+      // A 1-character "skill" (e.g. "R" from a JD) can substring-match
+      // almost any resume skill ("reporting" contains "r"), so it can never
+      // be reliably matched or counted as missing-evidence. Skip it.
+      if (jobSkill.length < 2 || !resumeSkillsLower.some(resumeSkill =>
+        resumeSkill.length >= 2 && jobSkill.includes(resumeSkill) ||
+        resumeSkill.length >= 2 && resumeSkill.includes(jobSkill))) {
+        return;
       }
+      matches++;
     });
 
     return Math.min(matches / jobSkills.length, 1.0);
@@ -3856,6 +4116,11 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
     try { startTheme = localStorage.getItem('appTheme') || 'ink'; } catch (e) { /* ignore */ }
     applyTheme(startTheme);
 
+    // One-time fetch of the active provider/model (existing /api/health
+    // endpoint) so AI labels reflect the real provider. Fire-and-forget;
+    // labels fall back to neutral "AI" when the server is unreachable.
+    refreshAiProviderInfo();
+
     // Load resume profile on startup
     loadResumeProfileAndUpdateUI();
 
@@ -3929,6 +4194,8 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
   init();
   // Initialize the planner
   initPlanner();
+  // Resume Studio initializes at the END of this callback (after its module
+  // consts) — see initStudio() below the planner code.
 
   // =============================================
   // CAREER TRANSITION PLANNER
@@ -4429,7 +4696,7 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
         if (!roleInfo) return;
 
         const skillsMatch = calculateTargetRoleSkillsMatch(resumeData.skills || [], roleProfile.keySkills || []);
-        const expMatch = calculateTieredExperienceMatch(resumeData.totalExperience || 0, roleProfile.experience || { min: 0, preferred: 0 });
+        const expMatch = calculateTieredExperienceMatch(effectiveExperience(resumeData).years, roleProfile.experience || { min: 0, preferred: 0 });
         const eduMatch = calculateTieredEducationMatch(resumeData.education || [], roleProfile.education || { min: '', preferred: '' });
 
         const missing = getMissingRoleSkills(resumeData.skills || [], roleProfile.keySkills || []);
@@ -4551,7 +4818,7 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
       // Calculate match percentages
       const skillsMatch = calculateTargetRoleSkillsMatch(resumeData.skills || [], roleProfile.keySkills || []);
-      const experienceMatch = calculateTieredExperienceMatch(resumeData.totalExperience || 0, roleProfile.experience || { min: 0, preferred: 0 });
+      const experienceMatch = calculateTieredExperienceMatch(effectiveExperience(resumeData).years, roleProfile.experience || { min: 0, preferred: 0 });
       const educationMatch = calculateTieredEducationMatch(resumeData.education || [], roleProfile.education || { min: '', preferred: '' });
 
       // Generate detailed analysis
@@ -4585,7 +4852,7 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
 
       // Analyze the resume to extract key information
       const skills = resumeData.skills || [];
-      const totalExperience = resumeData.totalExperience || 0;
+      const totalExperience = effectiveExperience(resumeData).years;
       const education = resumeData.education || [];
 
       // Generate a basic analysis
@@ -4643,7 +4910,7 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
   // Analyze role fit between resume data and role profile
   function analyzeRoleFit(resumeData, roleProfile, roleName) {
     const skills = resumeData.skills || [];
-    const experience = resumeData.totalExperience || 0;
+    const experience = effectiveExperience(resumeData).years;
     const education = resumeData.education || [];
 
     // Calculate matches
@@ -5075,6 +5342,1037 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
   // Call planner initialization after the main init
   // We'll modify the init() call at the bottom of the file to also init planner
 
+  // ============================================================================
+  // RESUME STUDIO
+  // A local improvement studio on top of the SHARED saved profile. Rule-based
+  // only (no AI service, no network): every suggestion is derived from the
+  // analyzed profile itself and carries an evidence label — factual rewrite /
+  // supported inference / needs your input. Drafts live in their own
+  // localStorage key; the primary saved resume profile is never modified.
+  // ============================================================================
+
+  function loadStudioDrafts() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STUDIO_DRAFTS_KEY) || '[]');
+      if (!Array.isArray(data)) return [];
+      // Keep every valid entry; drop malformed ones individually (never blank
+      // the whole shelf) — same convention as loadApplications.
+      return data.filter(d => d && typeof d === 'object' && typeof d.text === 'string'
+        && typeof d.name === 'string' && d.id);
+    } catch (e) { return []; }
+  }
+
+  function saveStudioDrafts(list) {
+    try { localStorage.setItem(STUDIO_DRAFTS_KEY, JSON.stringify(list || [])); }
+    catch (e) { /* storage unavailable (private mode) — in-memory shelf only */ }
+  }
+
+  // (studioState + STUDIO_SECTIONS are declared at the top of the callback —
+  // see "Global data storage" — so renderStudio() is safe even when init()
+  // activates the studio tab from a persisted value before this section's
+  // code has executed.)
+
+  // Guarded: in the test harness (or if studio-data.js failed to load)
+  // window.STUDIO_* may be absent or not arrays — degrade to "no examples".
+  function studioTemplates() { const t = window.STUDIO_TEMPLATES; return Array.isArray(t) ? t : []; }
+  function studioExamples() { const e = window.STUDIO_EXAMPLES; return Array.isArray(e) ? e : []; }
+  function studioResources() { const r = window.STUDIO_RESOURCES; return Array.isArray(r) ? r : []; }
+  function studioRoleOptions() {
+    return Object.entries(ALL_ROLES_FLAT || {}).map(([key, r]) =>
+      ({ value: key, label: r.name + (key ? ' (' + key + ')' : '') }));
+  }
+
+  // Summarize experience honestly: dated when parseable, "as stated" when
+  // only the candidate's own figure exists, "recent" when neither.
+  function studioExpPhrase(profile) {
+    const eff = effectiveExperience(profile || {});
+    if (eff.source === 'stated') return '≈' + formatExperienceYears(eff.years) + ' (as stated by you)';
+    if (eff.source === 'dates') return formatExperienceYears(eff.years);
+    return 'recent';
+  }
+
+  function studioAutoSummary(profile, roleKey) {
+    const skillTop = ((profile && profile.skills) || []).slice(0, 3)
+      .map(s => String(s).charAt(0).toUpperCase() + String(s).slice(1)).join(', ');
+    const role = (ALL_ROLES_FLAT && roleKey && ALL_ROLES_FLAT[roleKey]) ? ALL_ROLES_FLAT[roleKey].name : 'professional';
+    return studioExpPhrase(profile) + ' ' + role + ' with hands-on experience in ' +
+      (skillTop || 'your core skills') + '.';
+  }
+
+  // Content-matched verb for weak-opener rewrites (only the opener changes;
+  // the bullet's own words are preserved — nothing is invented).
+  function studioVerbFor(content) {
+    const t = String(content || '').toLowerCase();
+    if (/\b(manag)\w*\b/.test(t)) return 'Managed';
+    if (/\b(led|oversaw|supervis|ran|direct|head)\w*\b/.test(t)) return 'Led';
+    if (/\b(build|creat|develop|design|implement|shipped|migrat)\w*\b/.test(t)) return 'Built';
+    if (/\b(automat|streamlin|integrat|optimi[sz])\b/.test(t)) return 'Automated';
+    if (/\b(reduc|cut|lower|sav)\b/.test(t)) return 'Reduced';
+    if (/\b(test|valid|review|verif|audit)\b/.test(t)) return 'Validated';
+    if (/\b(report|document|analy)\b/.test(t)) return 'Reported';
+    if (/\b(own|support|maintain)\b/.test(t)) return 'Owned';
+    return 'Delivered';
+  }
+
+  // Lines under a heading section (Projects / Certifications), bounded by the
+  // next recognized section heading.
+  function studioExtractSectionLines(rawText, headingRe) {
+    const lines = String(rawText || '').split(/\r?\n/);
+    const nextSection = /^(summary|about|profile|objective|experience|employment|work\s+history|education|skills?|projects?|certifications?|achievements|languages?|interests?)\b/i;
+    const out = [];
+    let inSec = false;
+    for (const line of lines) {
+      const t = line.trim();
+      if (t.length === 0) { if (inSec) { break; } continue; }
+      if (inSec) {
+        if (nextSection.test(t) && !headingRe.test(t) && t.length < 40) break;
+        out.push(t);
+      } else if (headingRe.test(t) && t.length < 40) {
+        inSec = true;
+      }
+    }
+    return out;
+  }
+
+  // ---- Improve workflow: rule-based suggestions from the saved profile ----
+  function studioBuildSuggestions() {
+    const profile = getSavedResumeProfile() || {};
+    const roleKey = studioState.improveRole;
+    const role = (ALL_ROLES_FLAT && ALL_ROLES_FLAT[roleKey]) || null;
+    const raw = profile.rawText || '';
+    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const bullets = lines.filter(l => BULLET_LINE_RE.test(l));
+    const sugg = [];
+    let n = 0;
+    const push = o => sugg.push(Object.assign({ id: 's' + (++n) }, o));
+
+    // 1. Weak openers -> factual rewrite (opener swapped, words kept)
+    const WEAK = ['responsible for', 'responsible', 'duties included', 'tasked with',
+      'was responsible', 'helped with', 'involved in', 'assisted in', 'participated in'];
+    bullets.forEach(b => {
+      const s = b.replace(BULLET_MARKER_STRIP_RE, '').trim();
+      const low = s.toLowerCase();
+      const weak = WEAK.find(k => low.startsWith(k));
+      if (!weak) return;
+      let rest = s.replace(new RegExp('^' + weak.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'i'), '')
+        .replace(/[.,]\s*$/, '').trim();
+      if (!rest) return;
+      const verb = studioVerbFor(rest);
+      // If the content already leads with the same verb in another form
+      // ("responsible for managing…" -> "Managed the monthly close"), drop
+      // the duplicated verb word instead of writing "Managed managing…".
+      const verbBase = verb.replace(/(ed|s|ing)$/, '').toLowerCase();
+      if (verbBase.length >= 3) {
+        rest = rest.replace(new RegExp('^' + verbBase + '\\w*\\s+', 'i'), '').trim() || rest;
+      }
+      push({
+        area: 'Experience bullet', kind: 'factual', original: b,
+        proposed: '• ' + verb + (rest && rest !== s ? ' ' + rest : ''),
+        why: 'Action verbs open stronger than "' + weak + '". Only the opener changes — the content is your own wording.',
+        autoApply: 'replace'
+      });
+    });
+
+    // 2. Numberless bullets -> ask for a REAL metric (never invent one)
+    bullets.filter(b => !/\d/.test(b)).slice(0, 4).forEach(b => {
+      push({
+        area: 'Quantified impact', kind: 'needs-input', original: b,
+        proposed: b + ' [+ your measurable result]',
+        why: 'This bullet has no number. If you have a real, verifiable result (%, time, ₹, scale), add it — this app will not invent one.',
+        autoApply: 'replace'
+      });
+    });
+
+    // 3. Summary (supported inference, reworded from profile facts only)
+    const hasSummary = lines.slice(0, 6).some(l => !BULLET_LINE_RE.test(l) && l.length > 40 && !/\b@/.test(l));
+    if (!hasSummary && (profile.skills || []).length > 0) {
+      push({
+        area: 'Professional summary', kind: 'inferred', original: '',
+        proposed: studioAutoSummary(profile, roleKey),
+        why: 'Reworded from your profile (' + studioExpPhrase(profile) + ', top skills) — no facts added. Edit it to your own voice before using it.',
+        autoApply: 'insert-top'
+      });
+    }
+
+    // 4. Target-role keyword gaps -> user must confirm each is honest
+    if (role) {
+      getMissingRoleSkills(profile.skills, role.skills).slice(0, 3).forEach(sk => {
+        push({
+          area: 'Relevance to ' + role.name, kind: 'needs-input', original: '',
+          proposed: sk,
+          why: 'The ' + role.name + ' profile lists "' + sk + '". Add it to your Skills only if you genuinely have it (work, projects or coursework) — padding gets caught in interviews.',
+          autoApply: 'skip'
+        });
+      });
+    }
+
+    // 5. Pasted JD keywords -> alignment notes
+    if (studioState.improveJd.trim()) {
+      const jdSkills = parseJobDescription(studioState.improveJd).keySkills || [];
+      getMissingRoleSkills(profile.skills, jdSkills).slice(0, 4).forEach(sk => {
+        push({
+          area: 'JD keyword alignment', kind: 'needs-input', original: '',
+          proposed: sk,
+          why: 'This JD names "' + sk + '". Use it where it reflects your real experience; never add a skill you cannot demonstrate.',
+          autoApply: 'skip'
+        });
+      });
+    }
+
+    // 6. Structure sanity (inference, advisory only — not auto-applied)
+    if (lines.length > 90) {
+      push({
+        area: 'Structure', kind: 'inferred', original: '', proposed: '',
+        why: 'Your resume runs to ' + lines.length + ' lines (roughly 2+ pages). Keep your two most recent roles in full detail and compress older ones to one line each.',
+        autoApply: 'skip'
+      });
+    }
+    if (lines.some(l => /^-\s/.test(l)) && lines.some(l => /^[•●]\s?/.test(l))) {
+      push({
+        area: 'Consistency', kind: 'factual', original: '', proposed: '',
+        why: 'You mix "-" and "•" bullet markers. Pick one marker throughout so the document reads consistently.',
+        autoApply: 'skip'
+      });
+    }
+
+    // 7. Grammar: one repeated word, if present
+    const dup = raw.match(/\b(\w{3,})\s+\1\b/i);
+    if (dup) {
+      push({
+        area: 'Grammar', kind: 'factual', original: dup[0], proposed: dup[1],
+        why: 'Repeated word: "' + dup[0] + '" -> "' + dup[1] + '".',
+        autoApply: 'replace'
+      });
+    }
+
+    return sugg;
+  }
+
+  // Apply every ACCEPTED auto-applicable suggestion to the DRAFT text.
+  // The saved source resume and profile are never touched.
+  function studioApplyAccepted() {
+    const accepted = (studioState.suggestions || [])
+      .filter(s => studioState.accepted.includes(s.id) && s.autoApply !== 'skip');
+    if (accepted.length === 0) return 0;
+    studioState.snapshot = studioState.draftText;
+    let text = studioState.draftText;
+    let count = 0;
+    accepted.forEach(s => {
+      if (s.autoApply === 'insert-top') {
+        if (!text.includes(s.proposed)) {
+          text = s.proposed + '\n' + text;
+          count++;
+        }
+        return;
+      }
+      if (s.autoApply === 'replace') {
+        // Line-anchored replacement: match the line whose unmarked content
+        // equals the original bullet; fall back to an exact string replace.
+        const needle = String(s.original).trim();
+        if (!needle) return;
+        const markerless = l => l.trim().replace(BULLET_MARKER_STRIP_RE, '').trim();
+        const foundLine = text.split('\n').find(l => markerless(l) === markerless(needle));
+        if (foundLine !== undefined) {
+          text = text.replace(foundLine, s.proposed);
+          count++;
+        } else if (text.includes(needle)) {
+          text = text.split(needle).join(s.proposed);
+          count++;
+        }
+      }
+    });
+    studioState.draftText = text;
+    studioState.applied = accepted.map(s => s.id);
+    return count;
+  }
+
+  function studioUndoApply() {
+    if (studioState.snapshot) studioState.draftText = studioState.snapshot;
+    studioState.applied = [];
+  }
+
+  // ---- New-draft builder: verified profile data + explicit placeholders ----
+  function studioDraftNameFromProfile(profile) {
+    const first = String((profile && profile.rawText) || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)[0] || '';
+    // A name, not a heading or a bullet: short, no dates/emails/URLs/markers.
+    if (first && first.length <= 40 && !/\d{4}|@|http/.test(first)
+      && !nextSectionHeading.test(first) && !BULLET_LINE_RE.test(first)
+      && /^\p{L}/u.test(first)) return first;
+    return '';
+  }
+  const nextSectionHeading = /^(summary|about|profile|objective|experience|education|skills?|projects?|certifications?)\b/i;
+
+  function studioBuildNewDraft() {
+    const profile = getSavedResumeProfile() || {};
+    const tpl = studioTemplates().find(t => t.id === studioState.newStructure) || studioTemplates()[0] || null;
+    const activeSections = studioState.newSections || STUDIO_SECTIONS;
+    const tplSkip = (tpl && tpl.skip) ? tpl.skip : [];
+    const order = (tpl ? tpl.order : STUDIO_SECTIONS)
+      .filter(s => activeSections.includes(s) && tplSkip.indexOf(s) === -1);
+
+    const parts = [];
+    const missing = [];
+    const rewritten = [];
+    const skillsArr = (profile.skills || []);
+
+    order.forEach(section => {
+      switch (section) {
+        case 'contact': {
+          const name = studioDraftNameFromProfile(profile);
+          const c = profile.contactInfo || {};
+          const contact = [c.email, c.phone, c.location].filter(Boolean).join('  ·  ');
+          const lines = [];
+          if (name) lines.push(name); else { lines.push('[Add your full name]'); missing.push('Full name'); }
+          if (contact) lines.push(contact); else { lines.push('[Add your email and phone]'); missing.push('Contact details'); }
+          parts.push(lines.join('\n'));
+          break;
+        }
+        case 'summary':
+          parts.push(studioAutoSummary(profile, studioState.newRole));
+          rewritten.push('Professional summary — reworded from your profile (' + studioExpPhrase(profile) + '). Edit it to your voice.');
+          break;
+        case 'skills':
+          if (skillsArr.length > 0) {
+            parts.push('Skills: ' + skillsArr.slice(0, 14).map(s => String(s).charAt(0).toUpperCase() + String(s).slice(1)).join(', '));
+            if (skillsArr.length > 14) rewritten.push('Skills list truncated to your first 14 detected skills — add any others by hand.');
+          } else {
+            parts.push('[Add your key skills]');
+            missing.push('Skills');
+          }
+          break;
+        case 'experience': {
+          const ranges = ((profile.experience || {}).dateRanges || [])
+            .filter(r => r && r.raw).slice()
+            .sort((a, b) => (b.start || 0) - (a.start || 0));
+          if (ranges.length > 0) {
+            parts.push(ranges.map(r => {
+              const title = r.positionTitle || '[job title]';
+              const company = r.companyName || '[company]';
+              let line = (title === '[job title]' ? '[Add: job title]' : title) + ', ' +
+                (company === '[company]' ? '[Add: company]' : company) + ' (' + r.raw + ')';
+              if (title === '[job title]') missing.push('A job title for ' + r.raw);
+              if (company === '[company]') missing.push('A company for ' + r.raw);
+              line += '\n' + (r.responsibilities ? '• ' + String(r.responsibilities).trim() : '• [Add 2–3 bullets of what you did in this role]');
+              if (!r.responsibilities) missing.push('Responsibilities for ' + r.raw);
+              return line;
+            }).join('\n'));
+          } else if (profile.statedExperience != null) {
+            parts.push('Experience: ≈' + formatExperienceYears(Number(profile.statedExperience) || 0) + ' (as stated by you)\n• [Add your roles with dates]');
+            missing.push('Dated work history (your stated ' + profile.statedExperience + ' years cannot be broken into roles here)');
+          } else {
+            parts.push('[Add your work history — role, company, dates]');
+            missing.push('Work history');
+          }
+          break;
+        }
+        case 'projects': {
+          const ps = studioExtractSectionLines(profile.rawText, /projects?\b/i);
+          if (ps.length > 0) parts.push('Projects\n' + ps.slice(0, 6).map(l => l.startsWith('•') || l.startsWith('-') ? l : '• ' + l).join('\n'));
+          else { parts.push('[Add your projects]'); missing.push('Projects'); }
+          break;
+        }
+        case 'education': {
+          const edus = (profile.education || []).filter(e => e && (e.degree || e.field));
+          if (edus.length > 0) {
+            parts.push(edus.map(e => [e.degree, e.field, e.institution && e.institution !== 'Unknown' ? e.institution : null].filter(Boolean).join(', ')).join('\n'));
+          } else {
+            parts.push('[Add your education]');
+            missing.push('Education');
+          }
+          break;
+        }
+        case 'certifications': {
+          const cs = studioExtractSectionLines(profile.rawText, /certifications?\b/i);
+          if (cs.length > 0) parts.push('Certifications\n' + cs.slice(0, 6).map(l => l.startsWith('•') || l.startsWith('-') ? l : '• ' + l).join('\n'));
+          else { parts.push('[Add your certifications, if any]'); missing.push('Certifications'); }
+          break;
+        }
+      }
+    });
+
+    return { text: parts.join('\n\n'), missing, rewritten };
+  }
+
+  // ---- Preview: the draft rendered with the chosen structure ----
+  function studioRenderPreview(text, tplId) {
+    const tpl = studioTemplates().find(t => t.id === tplId);
+    const lines = String(text || '').split(/\r?\n/).map(l => l.trim());
+    let html = '';
+    let openList = false;
+    const closeList = () => { if (openList) { html += '</ul>'; openList = false; } };
+    lines.forEach(l => {
+      if (!l) return;
+      if (BULLET_LINE_RE.test(l)) {
+        if (!openList) { html += '<ul>'; openList = true; }
+        html += '<li>' + escAttr(l.replace(BULLET_MARKER_STRIP_RE, '').trim()) + '</li>';
+      } else {
+        closeList();
+        if (l === l.toUpperCase() && l.length >= 2 && l.length <= 28 && /[A-Z]/.test(l) && l.indexOf('[') !== 0) {
+          html += '<h3>' + escAttr(l) + '</h3>';
+        } else if (/^\[.*\]$/.test(l)) {
+          html += '<p class="studio-pv-missing">' + escAttr(l) + '</p>';
+        } else {
+          html += '<p>' + escAttr(l) + '</p>';
+        }
+      }
+    });
+    closeList();
+    return '<div class="studio-pv tpl-' + (tpl ? tpl.id : 'plain') + '" data-template="' + escAttr(tpl ? tpl.id : '') + '">' + html + '</div>';
+  }
+
+  // ---- Drafts shelf ----
+  function studioSaveDraft(name, text, role, structure) {
+    const list = loadStudioDrafts();
+    const id = 'sd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+    list.push({
+      id,
+      name: (name && name.trim()) || ('Draft ' + (list.length + 1)),
+      role: role || '',
+      structure: structure || 'ats-single-column',
+      text: String(text || ''),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    saveStudioDrafts(list);
+    return id;
+  }
+
+  function studioFlash(msg) {
+    const el = document.getElementById('studioFlash');
+    if (el) {
+      el.textContent = msg || '';
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.textContent = ''; }, 3500);
+    }
+  }
+
+  function studioCopyText(text, what) {
+    const done = () => studioFlash((what || 'Draft') + ' copied to clipboard');
+    const fail = () => studioFlash('Copy blocked by the browser — select the text manually');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else fail();
+  }
+
+  function studioPrint() {
+    // Print the current NEW-DRAFT preview in a print-friendly view. The
+    // on-screen layout is hidden via @media print rules keyed to body
+    // .studio-printing; the user can "Save as PDF" from the print dialog.
+    const area = document.getElementById('studioPrintArea');
+    if (area) {
+      area.innerHTML = studioRenderPreview(studioState.newDraftText || studioState.draftText, studioState.newStructure);
+    }
+    if (document.body && document.body.classList) document.body.classList.add('studio-printing');
+    const clear = () => { if (document.body && document.body.classList) document.body.classList.remove('studio-printing'); };
+    window.print();
+    setTimeout(clear, 500);
+  }
+
+  // ---- The pane renderer ----
+  function renderStudio() {
+    const host = document.getElementById('studioContent');
+    if (!host) return;
+    const profile = getSavedResumeProfile();
+    const templates = studioTemplates();
+    const examples = studioExamples();
+    const hasProfile = !!profile;
+
+    const roleOpts = studioRoleOptions();
+    const roleSelect = id =>
+      `<select id="${id}" class="form-select form-select-sm" aria-label="Target role">
+        <option value="">No specific role (improve generally)</option>
+        ${roleOpts.map(r => `<option value="${escAttr(r.value)}" ${studioState.improveRole === r.value ? 'selected' : ''}>${escAttr(r.label)}</option>`).join('')}
+      </select>`;
+    const newRoleSelect = id =>
+      `<select id="${id}" class="form-select form-select-sm" aria-label="Target role for new draft">
+        <option value="">No specific role</option>
+        ${roleOpts.map(r => `<option value="${escAttr(r.value)}" ${studioState.newRole === r.value ? 'selected' : ''}>${escAttr(r.label)}</option>`).join('')}
+      </select>`;
+
+    const sectionChecks = () => STUDIO_SECTIONS.map(s =>
+      `<label class="studio-sec"><input type="checkbox" data-studio-section="${s}" ${((studioState.newSections || STUDIO_SECTIONS).indexOf(s) !== -1) ? 'checked' : ''}> ${s}</label>`
+    ).join(' ');
+
+    // ---------- Improve pane ----------
+    let improve = '';
+    if (!hasProfile) {
+      improve = `
+        <div class="studio-empty">
+          <div class="studio-empty-title">No saved resume profile yet</div>
+          <p>Build one in the <strong>Resume</strong> tab first (paste or upload your resume, then <em>Analyze</em>). The studio works from that same saved profile — you never upload the resume twice.</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-studio-goresume>Go to Resume tab</button>
+        </div>`;
+    } else {
+      const kindLabel = { factual: 'factual rewrite', inferred: 'supported inference', 'needs-input': 'needs your input' };
+      const suggCards = (studioState.suggestions || []).map(s => {
+        const applied = studioState.applied.indexOf(s.id) !== -1;
+        const accepted = studioState.accepted.indexOf(s.id) !== -1;
+        return `
+          <div class="studio-sugg ${applied ? 'studio-sugg-applied' : ''}" data-sugg="${s.id}">
+            <div class="studio-sugg-head">
+              <span class="studio-chip">${escAttr(s.area)}</span>
+              <span class="studio-chip studio-chip-${s.kind}">${kindLabel[s.kind] || s.kind}</span>
+              ${s.autoApply === 'skip' ? '<span class="studio-chip studio-chip-info">informational</span>' : ''}
+              ${applied ? '<span class="studio-chip studio-chip-done">applied ✓</span>' : ''}
+            </div>
+            ${s.original ? `<div class="studio-sugg-orig">${escAttr(s.original)}</div>` : ''}
+            ${s.proposed ? `<div class="studio-sugg-prop">${escAttr(s.proposed)}</div>` : ''}
+            <div class="studio-sugg-why">${escAttr(s.why)}</div>
+            ${s.autoApply !== 'skip' ? `
+              <label class="studio-sugg-accept">
+                <input type="checkbox" data-studio-accept="${s.id}" ${accepted ? 'checked' : ''} aria-label="Accept suggestion: ${escAttr(s.area)}">
+                Accept this change
+              </label>` : ''}
+          </div>`;
+      }).join('');
+      improve = `
+        <div class="studio-profile-chip">Working with your saved profile ${profile.rawText ? '(' + Math.round(profile.rawText.length / 6) + ' words)' : ''} — it is never modified by the studio.</div>
+        <div class="studio-controls">
+          <div class="studio-control">
+            <label for="studioRole">Target role</label>
+            ${roleSelect('studioRole')}
+          </div>
+          <div class="studio-control studio-control-wide">
+            <label for="studioJd">Job description (optional, for keyword alignment)</label>
+            <textarea id="studioJd" class="form-control form-control-sm" rows="3" placeholder="Paste a JD so the studio can check keyword alignment against your real experience">${escAttr(studioState.improveJd)}</textarea>
+          </div>
+          <button type="button" class="btn btn-primary" data-studio-improve-go>Suggest improvements</button>
+        </div>
+        <div class="studio-ai">
+          <div class="studio-ai-head">
+            <h3 class="studio-sec-h">AI writing${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h3>
+            <span class="text-muted">Fresh AI generation · needs <code>python server.py</code></span>
+          </div>
+          <div class="studio-controls">
+            <div class="studio-control">
+              <label for="studioAiOp">Operation</label>
+              <select id="studioAiOp" class="form-select form-select-sm" aria-label="AI operation">
+                <option value="improve" ${studioState.aiOp === 'improve' ? 'selected' : ''}>Improve my resume</option>
+                <option value="rewrite_bullets" ${studioState.aiOp === 'rewrite_bullets' ? 'selected' : ''}>Rewrite weak bullets</option>
+                <option value="tailor" ${studioState.aiOp === 'tailor' ? 'selected' : ''}>Tailor to the JD</option>
+                <option value="new_draft" ${studioState.aiOp === 'new_draft' ? 'selected' : ''}>New draft from my data</option>
+                <option value="explain" ${studioState.aiOp === 'explain' ? 'selected' : ''}>Explain recommended changes</option>
+              </select>
+            </div>
+            <div class="studio-control studio-control-wide">
+              <label for="studioAiInstr">Instructions (optional)</label>
+              <textarea id="studioAiInstr" class="form-control form-control-sm" rows="2"
+                placeholder="e.g. Emphasize leadership; keep it to one page">${escAttr(studioState.aiInstr)}</textarea>
+            </div>
+            <button type="button" class="btn btn-primary" data-studio-ai-go>✍️ Generate with AI</button>
+            <span class="studio-ai-status text-muted" id="studioAiStatus" style="font-size:0.75rem"></span>
+          </div>
+          <p class="rf-ai-privacy text-muted" style="font-size:0.72rem">
+            Running this sends your current resume/draft (and the JD if present) to your configured AI provider.
+            Where a fact is missing it returns a clearly-marked <em>question</em> — it never invents one.
+          </p>
+          <div id="studioAiResults"></div>
+        </div>
+        ${studioState.suggestions.length ? `
+          <div class="studio-suggs">
+            <h3 class="studio-sec-h">Rule-based suggestions (${studioState.suggestions.length}) — accept, then apply</h3>
+            ${suggCards}
+            <div class="studio-sugg-actions">
+              <button type="button" class="btn btn-sm btn-primary" data-studio-apply>Apply selected to draft</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-undo>Undo</button>
+            </div>
+            ${studioState.suggestions.length === 0 ? '<p class="text-muted">No rule-based suggestions for this input — your bullets already open with action verbs and carry numbers.</p>' : ''}
+            <label class="studio-draft-label" for="studioDraft">
+              Draft editor <span class="text-muted">(edits happen in this draft, not in your saved resume)</span>
+            </label>
+            <textarea id="studioDraft" class="form-control" rows="12">${escAttr(studioState.draftText)}</textarea>
+            <div class="studio-draft-actions">
+              <input type="text" id="studioDraftName" class="form-control form-control-sm" placeholder="Name this draft (e.g. "Data analyst v2")" value="${escAttr(studioState.draftName)}" aria-label="Draft name">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-save-draft>Save as draft</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-copy-draft>Copy draft</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-print>Print / Save as PDF</button>
+            </div>
+          </div>` : ''}`;
+    }
+
+    // ---------- New-draft pane ----------
+    const newPane = `
+      <div class="studio-controls">
+        <div class="studio-control">
+          <label for="studioNewRole">Target job title</label>
+          ${newRoleSelect('studioNewRole')}
+          <input type="text" id="studioNewRoleText" class="form-control form-control-sm mt-1" placeholder="…or type a custom title" value="" aria-label="Custom target title">
+        </div>
+        <div class="studio-control">
+          <label for="studioNewLevel">Experience level</label>
+          <select id="studioNewLevel" class="form-select form-select-sm">
+            <option value="entry" ${studioState.newLevel === 'entry' ? 'selected' : ''}>Entry / fresh graduate</option>
+            <option value="mid" ${studioState.newLevel === 'mid' ? 'selected' : ''}>Mid-level</option>
+            <option value="senior" ${studioState.newLevel === 'senior' ? 'selected' : ''}>Senior</option>
+            <option value="leadership" ${studioState.newLevel === 'leadership' ? 'selected' : ''}>Leadership</option>
+          </select>
+        </div>
+        <div class="studio-control">
+          <label for="studioNewStructure">Preferred structure</label>
+          <select id="studioNewStructure" class="form-select form-select-sm">
+            ${templates.map(t => `<option value="${escAttr(t.id)}" ${studioState.newStructure === t.id ? 'selected' : ''}>${escAttr(t.name)}</option>`).join('')}
+          </select>
+          <small class="text-muted">${escAttr((templates.find(t => t.id === studioState.newStructure) || {}).notes || '')}</small>
+        </div>
+        <div class="studio-control studio-control-wide">
+          <label>Sections to include</label>
+          <div class="studio-sec-row">${sectionChecks()}</div>
+        </div>
+        <div class="studio-control studio-control-wide">
+          <label for="studioNewJd">Job description (optional — informs the summary)</label>
+          <textarea id="studioNewJd" class="form-control form-control-sm" rows="2" placeholder="Paste the JD to align the summary wording">${escAttr(studioState.newJd)}</textarea>
+        </div>
+        <button type="button" class="btn btn-primary" data-studio-new-go>Build draft from my profile</button>
+      </div>
+      ${!hasProfile ? '<div class="studio-empty"><div class="studio-empty-title">No saved profile</div><p>The draft will be placeholders only. Create a profile in the <strong>Resume</strong> tab to start from your verified data.</p></div>' : ''}
+      ${studioState.newDraftText ? `
+        <div class="studio-draft-cols">
+          <div>
+            <label class="studio-draft-label" for="studioNewDraft">Draft text (edit freely)</label>
+            <textarea id="studioNewDraft" class="form-control" rows="16">${escAttr(studioState.newDraftText)}</textarea>
+            <div class="studio-draft-actions">
+              <input type="text" id="studioNewName" class="form-control form-control-sm" placeholder="Name this draft" value="${escAttr(studioState.newName)}" aria-label="Draft name">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-save-new>Save new draft</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-copy-new>Copy</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-print>Print / Save as PDF</button>
+            </div>
+          </div>
+          <div>
+            <label class="studio-draft-label">Preview (current structure: ${escAttr((templates.find(t => t.id === studioState.newStructure) || {}).name || 'ATS')})</label>
+            <div class="studio-preview">${studioRenderPreview(studioState.newDraftText, studioState.newStructure)}</div>
+          </div>
+        </div>` : ''}`;
+
+    // ---------- Examples / templates pane ----------
+    const ex = examples.find(x => x.id === studioState.exCat) || examples[0];
+    const exPreview = ex ? studioRenderPreview(
+      ex.bullets.map(b => '• ' + b).join('\n'), studioState.exTpl
+    ) : '';
+    const examplesPane = examples.length ? `
+      <div class="studio-controls">
+        <div class="studio-control">
+          <label for="studioExCat">Role category</label>
+          <select id="studioExCat" class="form-select form-select-sm">
+            ${examples.map(x => `<option value="${escAttr(x.id)}" ${ex && ex.id === x.id ? 'selected' : ''}>${escAttr(x.category)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="studio-control">
+          <label for="studioExTpl">Structure to preview in</label>
+          <select id="studioExTpl" class="form-select form-select-sm">
+            ${templates.map(t => `<option value="${escAttr(t.id)}" ${studioState.exTpl === t.id ? 'selected' : ''}>${escAttr(t.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      ${ex ? `
+        <div class="studio-draft-cols">
+          <div>
+            <h3 class="studio-sec-h">Example bullets — ${escAttr(ex.category)}</h3>
+            <p class="text-muted">Original examples for this app. <strong>Never copy them as your own facts</strong> — reword each one around something you actually did.</p>
+            ${ex.bullets.map(b => `<div class="studio-ex-bullet">• ${escAttr(b)}</div>`).join('')}
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-copy-ex>Copy these bullets</button>
+            <h3 class="studio-sec-h">Role guidance</h3>
+            ${ex.guidance.map(g => `<div class="studio-ex-guidance">${escAttr(g)}</div>`).join('')}
+          </div>
+          <div>
+            <label class="studio-draft-label">Preview in “${escAttr((templates.find(t => t.id === studioState.exTpl) || {}).name || '')}”</label>
+            ${exPreview}
+          </div>
+        </div>` : ''}
+      <div class="studio-template-note">${escAttr(window.STUDIO_TEMPLATE_NOTE || '')}</div>
+      ${studioResources().length ? `
+        <div class="studio-resources">
+          <h3 class="studio-sec-h">External reading (linked sites are read in your browser — nothing from this app is sent to them)</h3>
+          ${studioResources().map(r =>
+            `<a href="${escAttr(r.url)}" target="_blank" rel="noopener noreferrer">${escAttr(r.label)}</a><span class="text-muted"> — ${escAttr(r.note || 'external reading')}</span>`).join('<br>')}
+        </div>` : ''}`
+      : '<p class="text-muted">No local examples loaded.</p>';
+
+    // ---------- Drafts shelf (always visible) ----------
+    const drafts = loadStudioDrafts();
+    const shelf = drafts.length ? `
+      <div class="studio-shelf">
+        <h3 class="studio-sec-h">Saved drafts (${drafts.length})</h3>
+        ${drafts.map(d => `
+          <div class="studio-draft-row" data-draft-row="${d.id}">
+            <strong>${escAttr(d.name)}</strong>
+            <span class="text-muted">${escAttr(d.structure || '')} · ${escAttr(String(d.updatedAt || '').slice(0, 10))}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-open="${d.id}">Open</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-studio-dup="${d.id}">Duplicate</button>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-studio-del="${d.id}">Delete</button>
+          </div>`).join('')}
+      </div>` : '<div class="studio-shelf"><h3 class="studio-sec-h">Saved drafts</h3><p class="text-muted">Nothing saved yet — drafts you create here appear here.</p></div>';
+
+    const wfBtn = (id, label, desc) =>
+      `<button type="button" class="studio-wf-btn ${studioState.wf === id ? 'active' : ''}" data-studio-wf="${id}" aria-pressed="${studioState.wf === id}">${label}<small>${desc}</small></button>`;
+
+    host.innerHTML = `
+      <div class="studio-wf-row" role="group" aria-label="Studio workflow">
+        ${wfBtn('improve', 'Improve my existing resume', 'rule-based suggestions on your saved profile')}
+        ${wfBtn('new', 'New resume for a target role', 'draft built from your verified profile')}
+        ${wfBtn('examples', 'Examples & templates', 'local example bullets and structures')}
+      </div>
+      <div class="studio-pane" data-studio-pane="${studioState.wf}">
+        ${studioState.wf === 'improve' ? improve : studioState.wf === 'new' ? newPane : examplesPane}
+      </div>
+      ${shelf}
+      <div class="studio-flash" id="studioFlash" role="status" aria-live="polite"></div>
+      <div class="studio-print-area" id="studioPrintArea" aria-hidden="true"></div>
+    `;
+  }
+
+  // ---- Event wiring (delegated on the pane host) ----
+  function studioHost() { return document.getElementById('studioContent'); }
+
+  // ---- AI writing (OpenAI) — a fresh request every time; never reuses a
+  // ---- previous AI output as the source unless the user copied it into the
+  // ---- draft first. A slow response cannot overwrite a newer one.
+  async function runStudioAi() {
+    const profile = getSavedResumeProfile() || {};
+    const opEl = document.getElementById('studioAiOp');
+    if (opEl) studioState.aiOp = opEl.value || 'improve';
+    const instrEl = document.getElementById('studioAiInstr');
+    if (instrEl) studioState.aiInstr = instrEl.value || '';
+    const roleEl = document.getElementById('studioRole');
+    const role = roleEl ? (roleEl.value || '') : (studioState.improveRole || '');
+    const jdEl = document.getElementById('studioJd');
+    const jd = jdEl ? (jdEl.value || '') : (studioState.improveJd || '');
+    const op = studioState.aiOp;
+
+    const statusEl = document.getElementById('studioAiStatus');
+    const host = document.getElementById('studioAiResults');
+    const btn = document.querySelector('[data-studio-ai-go]');
+
+    // Source of truth for each operation:
+    //   new_draft -> the user's REAL entered data (the saved profile's raw text)
+    //   everything else -> the CURRENT draft (what the user is looking at)
+    const source = op === 'new_draft'
+      ? (profile.rawText || studioState.draftText || '')
+      : (studioState.draftText || profile.rawText || '');
+    if (!source.trim()) {
+      if (statusEl) statusEl.textContent = op === 'new_draft'
+        ? 'No profile data yet — build one in the Resume tab first.'
+        : 'Run "Suggest improvements" first so there is a draft to work on.';
+      return;
+    }
+
+    studioState.aiSeq += 1;
+    const seq = studioState.aiSeq;
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+    if (host) host.innerHTML = '';
+    if (statusEl) statusEl.textContent = 'Contacting ' + (aiProviderWord() || 'the AI provider') + '…';
+    try {
+      const res = await fetch('/api/resume-studio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: op,
+          resumeText: op === 'new_draft' ? '' : source,
+          candidateInfo: op === 'new_draft' ? source : '',
+          jobDescription: jd,
+          instructions: studioState.aiInstr,
+          targetRole: role,
+          requestId: 's' + seq
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (seq !== studioState.aiSeq) return; // superseded by a newer request
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || ('HTTP ' + res.status));
+      }
+      studioState.aiLast = { content: data.result && data.result.content, operation: op, model: data.model };
+      renderStudioAi(data, host);
+      if (statusEl) statusEl.textContent = 'AI generation ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
+    } catch (e) {
+      if (seq !== studioState.aiSeq) return;
+      let msg = e && e.message ? e.message : String(e);
+      if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
+        msg = 'The AI server is not available. Start it with `python server.py`, then try again.';
+      }
+      if (statusEl) statusEl.textContent = 'AI generation failed: ' + msg + ' No stale result is shown.';
+      if (host) host.innerHTML = '<div class="studio-ai-err text-danger" style="font-size:0.8rem">' + escAttr(msg) + '</div>';
+    } finally {
+      if (seq === studioState.aiSeq && btn) { btn.disabled = false; btn.textContent = '✍️ Generate with AI'; }
+    }
+  }
+
+  function renderStudioAi(data, host) {
+    if (!host) return;
+    const r = data.result || {};
+    let html = '';
+    if (r.summary) html += '<div class="studio-ai-summary"><strong>' + escAttr(r.summary) + '</strong></div>';
+    if (r.content && r.content.trim()) {
+      html += '<pre class="studio-ai-content" style="white-space:pre-wrap">' + escAttr(r.content) + '</pre>';
+      const useLabel = r.operation === 'new_draft' ? 'Use as new-draft text' : 'Use this as the draft';
+      html += '<button type="button" class="btn btn-sm btn-outline-primary" data-studio-ai-use>📥 ' + useLabel +
+              ' <span class="text-muted">(copies into the editor — you still review & save it)</span></button> ';
+      html += '<button type="button" class="btn btn-sm btn-outline-secondary" data-studio-ai-copy>Copy text</button>';
+    }
+    const sugg = (Array.isArray(r.suggestions) ? r.suggestions : []).filter(s => s && (s.original || s.suggested));
+    if (sugg.length) {
+      html += '<h6>Rewrites</h6><ul class="studio-ai-suggs">' + sugg.map(s =>
+        '<li>' + (s.original ? '<span class="text-muted">' + escAttr(s.original) + '</span> → ' : '') +
+        '<strong>' + escAttr(s.suggested) + '</strong>' +
+        (s.why ? ' <em class="text-muted">— ' + escAttr(s.why) + '</em>' : '') + '</li>').join('') + '</ul>';
+    }
+    const qs = (Array.isArray(r.questions) ? r.questions : []).filter(Boolean);
+    if (qs.length) {
+      html += '<h6>Needs your input (not invented)</h6><ul class="studio-ai-qs">' +
+        qs.map(q => '<li>' + escAttr(q) + '</li>').join('') + '</ul>';
+    }
+    if (!r.content && !sugg.length && !qs.length && !r.summary) {
+      html = '<p class="text-muted">The model returned no usable output. Try again, or add more context.</p>';
+    }
+    host.innerHTML = html;
+  }
+
+  // Explicit user action: put the latest AI content into the editor. This is
+  // how a previous result becomes an intentional input for a NEXT request.
+  function studioUseAiResult() {
+    const last = studioState.aiLast;
+    if (!last || !last.content) { studioFlash('No AI text to insert yet.'); return; }
+    if (last.operation === 'new_draft') {
+      studioState.newDraftText = last.content;
+      studioState.wf = 'new';
+    } else {
+      studioState.draftText = last.content;
+    }
+    renderStudio();
+    studioFlash('AI text inserted into the editor — review it, then save/apply.');
+  }
+  function studioCopyAiResult() {
+    const last = studioState.aiLast;
+    if (last && last.content) studioCopyText(last.content, 'AI text');
+  }
+
+  function studioOnAction(e) {
+    const host = studioHost();
+    if (!host) return;
+    const t = e.target || {};
+    // e.target.closest works in the browser; the test harness passes a plain
+    // object whose closest() emulates the same lookup.
+    const closeTo = sel => (typeof t.closest === 'function') ? t.closest(sel) : null;
+    let el;
+
+    el = closeTo('[data-studio-wf]');
+    if (el) {
+      studioState.wf = el.dataset.studioWf || 'improve';
+      studioState.exCat = studioState.exCat || (studioExamples()[0] && studioExamples()[0].id);
+      renderStudio();
+      return;
+    }
+    el = closeTo('[data-studio-improve-go]');
+    if (el) {
+      const roleEl = document.getElementById('studioRole');
+      if (roleEl) studioState.improveRole = roleEl.value || '';
+      const jdEl = document.getElementById('studioJd');
+      if (jdEl) studioState.improveJd = jdEl.value || '';
+      const profile = getSavedResumeProfile();
+      if (!profile) return;
+      studioState.draftText = profile.rawText || '';
+      studioState.accepted = [];
+      studioState.applied = [];
+      studioState.snapshot = '';
+      studioState.suggestions = studioBuildSuggestions();
+      renderStudio();
+      return;
+    }
+    el = closeTo('[data-studio-apply]');
+    if (el) {
+      const n = studioApplyAccepted();
+      renderStudio();
+      studioFlash(n ? n + ' suggestion' + (n > 1 ? 's' : '') + ' applied to the draft' : 'Nothing accepted yet — tick a suggestion first');
+      return;
+    }
+    el = closeTo('[data-studio-undo]');
+    if (el) {
+      studioUndoApply();
+      renderStudio();
+      studioFlash('Draft restored to before the last apply');
+      return;
+    }
+    el = closeTo('[data-studio-copy-draft]');
+    if (el) { studioCopyText(studioState.draftText, 'Draft'); return; }
+    el = closeTo('[data-studio-save-draft]');
+    if (el) {
+      const nameEl = document.getElementById('studioDraftName');
+      studioSaveDraft(nameEl ? nameEl.value : studioState.draftName,
+        studioState.draftText, studioState.improveRole, 'ats-single-column');
+      studioState.draftName = '';
+      renderStudio();
+      studioFlash('Draft saved to your drafts shelf');
+      return;
+    }
+    el = closeTo('[data-studio-new-go]');
+    if (el) {
+      const nr = document.getElementById('studioNewRole');
+      const nrText = document.getElementById('studioNewRoleText');
+      const lvl = document.getElementById('studioNewLevel');
+      const tpl = document.getElementById('studioNewStructure');
+      const jdt = document.getElementById('studioNewJd');
+      if (nr) studioState.newRole = nr.value || '';
+      if (nrText && nrText.value.trim()) studioState.newRole = nrText.value.trim();
+      if (lvl) studioState.newLevel = lvl.value || 'mid';
+      if (tpl) studioState.newStructure = tpl.value || 'ats-single-column';
+      if (jdt) studioState.newJd = jdt.value || '';
+      const built = studioBuildNewDraft();
+      studioState.newDraftText = built.text;
+      renderStudio();
+      studioFlash(built.missing.length
+        ? 'Draft built — ' + built.missing.length + ' gap(s) marked [add …] need your input'
+        : 'Draft built from your profile');
+      return;
+    }
+    el = closeTo('[data-studio-save-new]');
+    if (el) {
+      const nameEl = document.getElementById('studioNewName');
+      studioSaveDraft(nameEl ? nameEl.value : studioState.newName,
+        studioState.newDraftText, studioState.newRole, studioState.newStructure);
+      studioState.newName = '';
+      renderStudio();
+      studioFlash('Draft saved to your drafts shelf');
+      return;
+    }
+    el = closeTo('[data-studio-copy-new]');
+    if (el) { studioCopyText(studioState.newDraftText, 'Draft'); return; }
+    el = closeTo('[data-studio-copy-ex]');
+    if (el) {
+      const ex = studioExamples().find(x => x.id === studioState.exCat) || studioExamples()[0];
+      if (ex) studioCopyText(ex.bullets.map(b => '• ' + b).join('\n'), 'Example bullets');
+      return;
+    }
+    el = closeTo('[data-studio-print]');
+    if (el) { studioPrint(); return; }
+    el = closeTo('[data-studio-goresume]');
+    if (el) { switchTab('resumeAnalysis'); return; }
+
+    el = closeTo('[data-studio-ai-go]');
+    if (el) { runStudioAi(); return; }
+    el = closeTo('[data-studio-ai-use]');
+    if (el) { studioUseAiResult(); return; }
+    el = closeTo('[data-studio-ai-copy]');
+    if (el) { studioCopyAiResult(); return; }
+
+    el = closeTo('[data-studio-open]');
+    if (el) {
+      const d = loadStudioDrafts().find(x => x.id === el.dataset.studioOpen);
+      if (d) {
+        studioState.newDraftText = d.text;
+        studioState.newStructure = d.structure || 'ats-single-column';
+        studioState.newRole = d.role || '';
+        studioState.newName = d.name || '';
+        studioState.wf = 'new';
+        renderStudio();
+        studioFlash('Opened "' + d.name + '"');
+      }
+      return;
+    }
+    el = closeTo('[data-studio-dup]');
+    if (el) {
+      const list = loadStudioDrafts();
+      const src = list.find(x => x.id === el.dataset.studioDup);
+      if (src) {
+        const copy = Object.assign({}, src, {
+          id: 'sd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7),
+          name: src.name + ' (copy)',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        list.push(copy);
+        saveStudioDrafts(list);
+        renderStudio();
+        studioFlash('Duplicated "' + src.name + '"');
+      }
+      return;
+    }
+    el = closeTo('[data-studio-del]');
+    if (el) {
+      const id = el.dataset.studioDel;
+      const d = loadStudioDrafts().find(x => x.id === id);
+      // Destructive: confirm (the harness confirm() stub returns true).
+      if (d && confirm('Delete the draft "' + d.name + '"? This cannot be undone.')) {
+        saveStudioDrafts(loadStudioDrafts().filter(x => x.id !== id));
+        renderStudio();
+        studioFlash('Draft "' + d.name + '" deleted');
+      }
+      return;
+    }
+  }
+
+  function studioOnChange(e) {
+    const t = e.target || {};
+    const closeTo = sel => (typeof t.closest === 'function') ? t.closest(sel) : null;
+    let el;
+    el = closeTo('[data-studio-accept]');
+    if (el) {
+      const id = el.dataset.studioAccept;
+      if (t.checked === false) studioState.accepted = studioState.accepted.filter(x => x !== id);
+      else if (studioState.accepted.indexOf(id) === -1) studioState.accepted.push(id);
+      return;
+    }
+    el = closeTo('[data-studio-section]');
+    if (el) {
+      const sec = el.dataset.studioSection;
+      const on = t.checked !== false;
+      if (!studioState.newSections) studioState.newSections = STUDIO_SECTIONS.slice();
+      if (on && studioState.newSections.indexOf(sec) === -1) studioState.newSections.push(sec);
+      if (!on) studioState.newSections = studioState.newSections.filter(s => s !== sec);
+      return;
+    }
+    // AI op select: sync to state WITHOUT re-rendering, so an already-generated
+    // AI result (in #studioAiResults) and the instructions box are preserved.
+    if (t.id === 'studioAiOp') {
+      studioState.aiOp = t.value || 'improve';
+      return;
+    }
+    // Plain selects/inputs identified by id
+    if (t.id) {
+      const selMap = {
+        studioRole: 'improveRole',
+        studioNewRole: 'newRole',
+        studioNewLevel: 'newLevel',
+        studioNewStructure: 'newStructure',
+        studioExCat: 'exCat',
+        studioExTpl: 'exTpl'
+      };
+      const key = selMap[t.id];
+      if (key && 'value' in t) {
+        studioState[key] = t.value || (key === 'exCat' ? '' : key === 'exTpl' ? 'ats-single-column' : '');
+        if (key === 'improveRole') {
+          // Role selection can only add new suggestions on the next GO.
+        }
+        renderStudio();
+      }
+    }
+  }
+
+  function studioOnInput(e) {
+    const t = e.target || {};
+    if (!t.id) return;
+    switch (t.id) {
+      case 'studioJd': studioState.improveJd = t.value || ''; break;
+      case 'studioNewJd': studioState.newJd = t.value || ''; break;
+      case 'studioNewRoleText': studioState.newRole = t.value ? t.value.trim() : ''; break;
+      case 'studioDraft': studioState.draftText = t.value || ''; break;
+      case 'studioDraftName': studioState.draftName = t.value || ''; break;
+      case 'studioNewDraft': studioState.newDraftText = t.value || ''; break;
+      case 'studioNewName': studioState.newName = t.value || ''; break;
+      case 'studioAiInstr': studioState.aiInstr = t.value || ''; break;
+      default: return;
+    }
+  }
+
+  // Initialize the studio: wire once; re-renders happen on tab activation
+  // and after every action.
+  function initStudio() {
+    const host = studioHost();
+    if (!host) return;
+    host.addEventListener('click', studioOnAction);
+    host.addEventListener('change', studioOnChange);
+    host.addEventListener('input', studioOnInput);
+    renderStudio();
+  }
+
+
   // Main resume parsing function
   function parseResume(resumeText) {
     // Extract skills
@@ -5089,8 +6387,26 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
     // Extract contact info
     const contactInfo = extractContactInfo(resumeText);
 
-    // Flatten all skills for backward compatibility
-    const allSkills = Object.values(skills).flat();
+    // Skills the candidate stated explicitly (SKILLS/TOOLS sections)
+    const statedSkills = extractStatedSkills(resumeText);
+
+    // Prose-stated experience, used ONLY when employment dates are unparsable,
+    // so a "12+ years" resume is never silently scored as 0.
+    const stated = extractStatedExperience(resumeText);
+    const experienceSource = experience.totalYears >= 0.5
+      ? 'dates'
+      : (stated ? 'stated' : 'unknown');
+
+    // Flatten all skills (keyword-detected + stated), deduped case-insensitively
+    // so the same skill found in two categories is never counted or shown twice.
+    const dedupSeen = new Set();
+    const allSkills = Object.values(skills).flat().concat(statedSkills)
+      .filter(s => {
+        const k = String(s).toLowerCase().replace(/\s+/g, ' ');
+        if (dedupSeen.has(k)) return false;
+        dedupSeen.add(k);
+        return true;
+      });
 
     return {
       rawText: resumeText,
@@ -5099,6 +6415,8 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
       education: education,
       contactInfo: contactInfo,
       totalExperience: experience.totalYears,
+      statedExperience: stated ? stated.years : null,
+      experienceSource: experienceSource,
       // Relevant experience will be calculated when analyzing career fit
       relevantExperience: 0,
       internshipExperience: experience.internshipYears,
@@ -5109,8 +6427,48 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
       tools: skills.tools || [],
       analytics: skills.analytics || [],
       transferableSkills: skills.transferable || [],
+      statedSkills: statedSkills,
       allSkills: allSkills
     };
+  }
+
+  // Best available experience evidence: parsed dates when present, otherwise
+  // the candidate's own stated figure. Never a silent zero.
+  function effectiveExperience(resume) {
+    const r = resume || {};
+    const parsed = Number(r.totalExperience) || 0;
+    if (parsed >= 0.5) return { years: parsed, source: 'dates' };
+    if (Number.isFinite(Number(r.statedExperience)) && Number(r.statedExperience) >= 0.5) {
+      return { years: Number(r.statedExperience), source: 'stated' };
+    }
+    return { years: parsed, source: parsed > 0 ? 'dates' : 'none' };
+  }
+
+  // Display-only source-of-evidence label for experience. Reads the
+  // profile-level experienceSource (Commit A) so sub-0.5y values show as
+  // "dated but thin" — never as "no dates found" and never as a stated
+  // claim. Presentation mapping only: no calculation or threshold changes.
+  function displayExperience(resume) {
+    const r = resume || {};
+    const parsed = Number(r.totalExperience) || 0;
+    const eff = effectiveExperience(r);
+    // Legacy profiles (pre-Commit A) have no experienceSource field: derive
+    // the equivalent — 0.5y+ of parseable dates reads as 'dates'.
+    const src = (typeof r.experienceSource === 'string' && r.experienceSource)
+      ? r.experienceSource
+      : (eff.years >= 0.5 ? 'dates' : 'unknown');
+    if (src === 'stated') {
+      return { text: '≈' + formatExperienceYears(eff.years), label: 'Stated exp.' };
+    }
+    if (src === 'dates') {
+      return { text: formatExperienceYears(eff.years), label: 'Experience' };
+    }
+    if (parsed > 0) {
+      // Dated but under the 0.5y materiality gate: show the real figure,
+      // labeled as short dated history.
+      return { text: formatExperienceYears(parsed), label: 'Experience (<0.5y dated)' };
+    }
+    return { text: formatExperienceYears(0), label: 'No dates found' };
   }
 
   // Skills extraction function
@@ -5183,7 +6541,11 @@ function calculateTargetRoleSkillsMatch(resumeSkills, jobSkills) {
     Object.keys(skillCategories).forEach(category => {
       skillCategories[category].forEach(skill => {
         const escapedSkill = skill.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-if (new RegExp(`\\b${escapedSkill}\\b`, 'i').test(text)) {
+        // \b only works next to word characters: "\bc++\b" can never match,
+        // so bound each end only when the skill starts/ends with a word char.
+        const lead = /^\w/.test(skill) ? '\\b' : '';
+        const trail = /\w$/.test(skill) ? '\\b' : '';
+if (new RegExp(lead + escapedSkill + trail, 'i').test(text)) {
           result[category].push(skill);
         }
       });
@@ -5275,17 +6637,21 @@ if (new RegExp(`\\b${escapedSkill}\\b`, 'i').test(text)) {
 
     // Also look for common education keywords without specific formatting
  
+// field stays '' unless the resume itself named one: a bare "MBA" does not
+// prove "Business Administration" (an MBA in HR or Analytics is equally
+// possible), and "B.Tech" does not prove "Engineering" (B.Tech in English
+// exists). Inventing the field would fabricate a qualification.
 const educationFallbacks = [
-  { pattern: /\bMBA\b/i, degree: 'MBA', field: 'Business Administration' },
-  { pattern: /\bB\.?\s?E\.?\b/i, degree: 'B.E.', field: 'Engineering' },
-  { pattern: /\bB\.?\s?Tech\b/i, degree: 'B.Tech', field: 'Engineering' },
-  { pattern: /\bB\.?\s?Sc\b/i, degree: 'B.Sc.', field: 'Science' },
-  { pattern: /\bB\.?\s?Com\b/i, degree: 'B.Com.', field: 'Commerce' },
-  { pattern: /\bBCA\b/i, degree: 'BCA', field: 'Computer Applications' },
-  { pattern: /\bBBA\b/i, degree: 'BBA', field: 'Business Administration' },
-  { pattern: /\bBachelor(?:'s)?\b/i, degree: 'Bachelor', field: 'Bachelor degree' },
-  { pattern: /\bMaster(?:'s)?\b/i, degree: 'Master', field: 'Master degree' },
-  { pattern: /\bPh\.?\s?D\b/i, degree: 'Ph.D.', field: 'Doctorate' }
+  { pattern: /\bMBA\b/i, degree: 'MBA', field: '' },
+  { pattern: /\bB\.?\s?E\.?\b/i, degree: 'B.E.', field: '' },
+  { pattern: /\bB\.?\s?Tech\b/i, degree: 'B.Tech', field: '' },
+  { pattern: /\bB\.?\s?Sc\b/i, degree: 'B.Sc.', field: '' },
+  { pattern: /\bB\.?\s?Com\b/i, degree: 'B.Com.', field: '' },
+  { pattern: /\bBCA\b/i, degree: 'BCA', field: '' },
+  { pattern: /\bBBA\b/i, degree: 'BBA', field: '' },
+  { pattern: /\bBachelor(?:'s)?\b/i, degree: 'Bachelor', field: '' },
+  { pattern: /\bMaster(?:'s)?\b/i, degree: 'Master', field: '' },
+  { pattern: /\bPh\.?\s?D\b/i, degree: 'Ph.D.', field: '' }
 ];
 
 educationFallbacks.forEach(item => {
@@ -5502,7 +6868,7 @@ educationFallbacks.forEach(item => {
   function isEducationRange(text, matchStart, matchEnd) {
     // Trailing \b is essential: without it, "ma" matches inside "manager" /
     // "Mar 2019" and employment lines get misclassified as education.
-    const eduMarker = /\b(b\.?e\.?|b\.?tech|bca|b\.?sc|bs|b\.?s\.?|ba|b\.?a\.?|ma|m\.?a\.?|ms|m\.?s\.?|bfa|b\.?f\.?a\.?|mfa|m\.?f\.?a\.?|ben|b\.?e\.?n\.?|meng|m\.?e\.?n\.?|mba|m\.?tech|m\.?sc|ph\.?d|mbchb|bachelor|master|degree|diploma|university|college|institute|school|graduat\w*|higher secondary|matric\w*)\b/;
+    const eduMarker = /\b(b\.?e\.?|b\.?tech|bca|b\.?sc|bs|b\.?s\.?|ba|b\.?a\.?|ma|m\.?a\.?|ms|m\.?s\.?|bfa|b\.?f\.?a\.?|mfa|m\.?f\.?a\.?|ben|b\.?e\.?n\.?|meng|m\.?e\.?n\.?|mba|m\.?tech|m\.?sc|ph\.?d|mbchb|iit|iim|bachelor|master|degree|diploma|university|college|institute|school|graduat\w*|higher secondary|matric\w*)\b/;
     // Some resumes are pasted as ONE long line. Line-based checks are then
     // meaningless (the "range's line" is the whole resume and carries every
     // marker), so fall back to a small window right before the range — degree
@@ -5516,9 +6882,14 @@ educationFallbacks.forEach(item => {
     const rangeLineStart = lineStart === -1 ? 0 : lineStart + 1;
     const rangeLineEnd = lineEnd === -1 ? text.length : lineEnd;
     const rangeLine = text.substring(rangeLineStart, rangeLineEnd).toLowerCase();
+    // Education blocks often stack degree / institution / dates on separate
+    // lines ("B.Tech\nIIT Delhi\n2015 – 2019") — the marker may sit two lines
+    // above the dates. Check the two lines above, not just one.
     const prevLineStart = lineStart === -1 ? 0 : text.lastIndexOf('\n', lineStart - 1) + 1;
     const prevLine = lineStart === -1 ? '' : text.substring(prevLineStart, lineStart).toLowerCase();
-    return eduMarker.test(rangeLine) || eduMarker.test(prevLine);
+    const prevPrevLineStart = prevLineStart === 0 ? 0 : text.lastIndexOf('\n', prevLineStart - 1) + 1;
+    const prevPrevLine = prevLineStart === 0 ? '' : text.substring(prevPrevLineStart, prevLineStart).toLowerCase();
+    return eduMarker.test(rangeLine) || eduMarker.test(prevLine) || eduMarker.test(prevPrevLine);
   }
 
   function extractDateRangesWithContext(text) {
@@ -5559,6 +6930,16 @@ educationFallbacks.forEach(item => {
 
       // Only add if both dates were parsed successfully
       if (startDate !== null && endDate !== null) {
+        // A flipped range ("Jun 2023 – Jan 2021") is almost always a typo,
+        // not evidence the job ran backwards: normalize it instead of
+        // silently dropping the whole period from the total.
+        let rangeStart = startDate;
+        let rangeEnd = endDate;
+        if (rangeEnd.getTime() < rangeStart.getTime()) {
+          const swap = rangeStart;
+          rangeStart = rangeEnd;
+          rangeEnd = swap;
+        }
         // Get context around the match to check for internship and education indicators
         const matchStart = match.index;
         const matchEnd = match.index + match[0].length;
@@ -5580,8 +6961,8 @@ educationFallbacks.forEach(item => {
         // ONLY ADD IF IT'S NOT AN EDUCATIONAL PERIOD
         if (!isEducation) {
           ranges.push({
-            start: startDate,
-            end: endDate,
+            start: rangeStart,
+            end: rangeEnd,
             raw: match[0],
             isInternship: isInternship
           });
@@ -5590,6 +6971,78 @@ educationFallbacks.forEach(item => {
     }
 
     return ranges;
+  }
+
+  // "N years of experience" stated in prose. Used only to AVOID silently
+  // reporting 0 years when a resume states its own experience but its
+  // employment dates are unparsable — the statement itself is the evidence.
+  function extractStatedExperience(text) {
+    if (!text || typeof text !== 'string') return null;
+    const rangeMatch = text.match(/(\d{1,2})\s*[-–—]\s*(\d{1,2})\s*(\+)?\s*years?\s*(?:of\s+)?(?:work\s+|professional\s+|total\s+)?experience/i);
+    if (rangeMatch) {
+      const lo = parseInt(rangeMatch[1], 10);
+      const hi = parseInt(rangeMatch[2], 10);
+      // "0 – N years" is a fresher's range, not an N-year claim: only the
+      // lower bound is certain, so report 0 rather than inventing N years.
+      if (hi >= 0 && hi <= 60) return { years: lo === 0 ? 0 : hi, raw: rangeMatch[0] };
+    }
+    const single = text.match(/(\d{1,2}(?:\.\d)?)\s*(\+)?\s*years?\s*(?:of\s+)?(?:work\s+|professional\s+|total\s+|combined\s+)?experience/i);
+    if (single) {
+      const years = parseFloat(single[1]);
+      if (!isNaN(years) && years >= 0 && years <= 60) return { years, raw: single[0] };
+    }
+    // "N(+ )years of/across/in <domain>" — a stated career length without the
+    // literal word "experience". Reject look-back phrases ("5 years ago",
+    // "in the last 3 years") which are not total-tenure claims.
+    const domain = text.match(/(\d{1,2}(?:\.\d)?)\s*(\+)?\s*years?\s+(?:of\s+|across\s+|in\s+|throughout\s+)/i);
+    if (domain) {
+      const window = text.slice(Math.max(0, domain.index - 20), domain.index + domain[0].length + 12).toLowerCase();
+      const isLookback = /\b(ago|in the|over the|past|last|recent|within|since)\b/.test(window);
+      if (!isLookback) {
+        const years = parseFloat(domain[1]);
+        if (!isNaN(years) && years >= 0 && years <= 60) return { years, raw: domain[0] };
+      }
+    }
+    return null;
+  }
+
+  // Skills the candidate states explicitly in a SKILLS/TOOLS section, as
+  // distinct tokens (never concatenated). Merged with keyword-detection so a
+  // resume listing "ITIL, ISO 27001, ServiceNow" is not reduced to only the
+  // tokens a fixed vocabulary knows.
+  function extractStatedSkills(text) {
+    if (!text || typeof text !== 'string') return [];
+    const lines = text.split(/\r?\n/);
+    const sectionHeading = /^\s*(core\s+)?(key\s+)?(skills?|technologies?|technical\s+skills?|tools?\s*(\(used\))?|tech\s+stack|platforms?|certifications?)\b[:\-–—]?\s*$/i;
+    const nextSection = /^(summary|about|profile|objective|experience|employment|work\s+history|education|projects|achievements|awards|languages?|interests?)\b/i;
+    const tokens = [];
+    let inSection = false;
+    let blankStreak = 0;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (sectionHeading.test(trimmed)) { inSection = true; blankStreak = 0; continue; }
+      if (inSection) {
+        if (nextSection.test(trimmed)) break;
+        if (trimmed === '') { blankStreak++; if (blankStreak > 1) break; continue; }
+        blankStreak = 0;
+        // Split on delimiters ONLY (commas, pipes, bullets, slashes,
+        // semicolons) — never on bare spaces — so multi-word skills like
+        // "Active Directory" or "Vendor Management" stay intact.
+        trimmed
+          .split(/[,;/|·▪‣•●]+/)
+          .map(tok => tok.replace(/^[\s\-–—:()\[\]]+|[\s\-–—:()\[\]]+$/g, '').trim().toLowerCase())
+          .forEach(tok => {
+            if (tok.length >= 2 && tok.length <= 30 && /^[a-z0-9+#. ]+$/.test(tok)) tokens.push(tok);
+          });
+      }
+    }
+    // Drop words that are not skill-like
+    const stop = new Set(['the','and','with','proficient','advanced','intermediate','familiar','exposure','knowledge','experience','skills','certified','certification','listed','above','strong','excellent','working']);
+    const seen = new Set();
+    return tokens
+      .filter(t => !stop.has(t) && !t.includes(' years') && !/^\d+$/.test(t))
+      .filter(t => { const k = t.replace(/\s+/g, ' '); if (seen.has(k)) return false; seen.add(k); return true; })
+      .slice(0, 30);
   }
 
   // =============================================
@@ -5869,7 +7322,9 @@ educationFallbacks.forEach(item => {
 
     const contextStart = Math.max(0, dateRangeIndex - 150);
     const contextEnd = Math.min(fullText.length, dateRangeText.length + 150);
-    const context = fullText.substring(contextStart, contextEnd);
+    // Blank out the range itself: its years must not leak into the parsed
+    // bullet and inflate the "quantified impact" meter with a date, not a result.
+    const context = fullText.substring(contextStart, contextEnd).replace(dateRangeText, ' ');
 
     // Extract responsibilities from the context
     return extractResponsibilities(context);
@@ -6243,6 +7698,10 @@ educationFallbacks.forEach(item => {
 
     return suggestions.map(item => `<li>${item}</li>`).join('');
   }
+
+  // Initialize the Resume Studio here (not at the top of the callback): the
+  // studio module's const state must be initialized before its first render.
+  if (typeof initStudio === 'function') initStudio();
 
 });
 

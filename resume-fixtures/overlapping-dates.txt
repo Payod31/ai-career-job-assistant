@@ -1,0 +1,10 @@
+Dual-role Consultant
+consult@example.com
+
+CONCURRENT ENGAGEMENTS (both ongoing)
+Freelance Data Engineer, ClientA (Jan 2021 to Jun 2023)
+- Built ETL pipelines moving 40M rows/day
+Contract Analyst, ClientB (Mar 2022 to Present)
+- Duplicated portfolio reporting, saved 6 analyst-hours weekly
+Full-time Ops Lead, ClientA (Jan 2021 to Jun 2023)
+- Same window as the freelance role above

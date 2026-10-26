@@ -1,0 +1,9 @@
+Meera Nair
+meera.nair@example.com
+Operations professional with 9 years of experience in logistics and process improvement.
+
+Worked across three supply-chain roles: managed vendor SLAs, automated weekly cost reports in Excel,
+reduced stockouts by 22%, and led a 4-person ops team.
+
+Education: B.Com, Pune
+Tools: Excel, SQL, Power BI

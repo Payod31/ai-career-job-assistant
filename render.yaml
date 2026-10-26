@@ -1,0 +1,21 @@
+# Render deployment for the Career AI assistant (Flask backend + static frontend).
+#
+# GEMINI_API_KEY is deliberately NOT in this file. Add it privately in the
+# Render dashboard (Environment settings) so the key never lives in Git.
+# The OpenAI API key is not used by this deployment and must NOT be added
+# to Render's environment.
+
+services:
+  - type: web
+    name: ai-career-job-assistant
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT server:app
+    envVars:
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      # GEMINI_API_KEY must be entered privately in Render's environment
+      # settings (do not commit it).

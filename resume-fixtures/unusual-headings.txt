@@ -1,0 +1,8 @@
+JOSHI, RAJ  (raj.joshi@example.com, Pune, 98220 00000)
+"WHAT I DO"
+▸ Ran IT services for a mid-size bank (01/2018 – 12/2021)
+▸ 15+ engineers on my team; delivered 200+ infra tickets a month
+▸ Cut cloud bill ~40% by right-sizing 120 VMs
+▸ "MY BACKGROUND"
+▸ B.S. Computer Engineering, State University, 2014
+▸ Certifications: AWS SA, ISO 27001

@@ -1,0 +1,11 @@
+E. Test
+e.test@example.com
+
+EXPERIENCE
+Software Engineer, TestCo (Jan 2019 – Present)
+- Maintained payment services and dashboards
+
+EDUCATION
+B.Tech
+IIT Delhi
+2015 – 2019

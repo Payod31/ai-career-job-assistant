@@ -1,0 +1,9 @@
+Alex Chen
+alex@example.com
+
+Software Engineer
+- Wrote web services and REST APIs
+- Used Git for version control
+- Collaborated with designers
+
+Skills: JavaScript, Node, PostgreSQL

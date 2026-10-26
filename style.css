@@ -3861,6 +3861,54 @@ textarea:focus-visible {
     margin: 12px 0 4px;
 }
 
+/* ---- OpenAI analysis block (rf-ai-openai) ---- */
+.rf-ai-openai {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.rf-ai-sec {
+    margin: 14px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.rf-ai-sec h6 {
+    font-family: 'Sora';
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--accent);
+    margin: 0 0 2px;
+}
+.rf-ai-summary {
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--text);
+    margin: 0;
+}
+.rf-ai-list {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--text);
+}
+.rf-ai-list li { margin-bottom: 3px; }
+.rf-ai-inferred {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-style: italic;
+}
+.rf-ai-none { font-size: 0.8rem; margin: 4px 0; }
+.rf-ai-err {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: color-mix(in srgb, #d64545 14%, transparent);
+    border: 1px solid color-mix(in srgb, #d64545 40%, var(--border));
+}
+.rf-ai-model { margin-top: 10px; }
+
 .rf-dots {
     display: flex;
     flex-wrap: wrap;
@@ -6678,4 +6726,209 @@ code {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Resume Studio (added by the studio feature)
+   ========================================================================== */
+.studio-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.studio-head-note { font-size: .72rem; color: var(--muted); font-weight: 400; }
+
+.studio-wf-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+@media (max-width: 720px) { .studio-wf-row { grid-template-columns: 1fr; } }
+.studio-wf-btn {
+  text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  font-size: .85rem; font-weight: 600; display: block; line-height: 1.3;
+}
+.studio-wf-btn small { display: block; font-weight: 400; color: var(--muted); font-size: .72rem; margin-top: 2px; }
+.studio-wf-btn.active { border-color: var(--accent); background: rgba(200, 245, 74, .06); }
+.studio-wf-btn:hover { border-color: var(--accent); }
+
+.studio-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 720px) { .studio-controls { grid-template-columns: 1fr; } }
+.studio-control { display: flex; flex-direction: column; gap: 4px; }
+.studio-control label { font-size: .74rem; color: var(--muted); }
+.studio-control-wide { grid-column: 1 / -1; }
+.studio-sec-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.studio-sec { font-size: .78rem; display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+
+.studio-profile-chip {
+  font-size: .78rem; color: var(--muted); border: 1px dashed var(--border);
+  border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; background: var(--surface);
+}
+.studio-empty {
+  border: 1px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center;
+  color: var(--muted); margin-bottom: 14px; background: var(--surface);
+}
+.studio-empty-title { font-weight: 600; color: var(--text); margin-bottom: 6px; }
+
+.studio-suggs { margin-top: 4px; }
+.studio-sugg {
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 8px;
+  background: var(--surface);
+}
+.studio-sugg-applied { opacity: .55; }
+.studio-sugg-head { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.studio-chip {
+  font-size: .68rem; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+}
+.studio-chip-factual { color: var(--accent); border-color: var(--accent); }
+.studio-chip-inferred { color: var(--warn); border-color: var(--warn); }
+.studio-chip-needs-input { color: #FF9999; border-color: #FF9999; }
+.studio-chip-info { opacity: .8; }
+.studio-chip-done { color: var(--accent); border-color: var(--accent); }
+.studio-sugg-orig { font-size: .8rem; color: var(--muted); text-decoration: line-through; margin-top: 4px; }
+.studio-sugg-prop { font-size: .84rem; margin-top: 4px; }
+.studio-sugg-why { font-size: .76rem; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+.studio-sugg-accept { display: inline-flex; align-items: center; gap: 6px; font-size: .76rem; margin-top: 8px; color: var(--text); }
+.studio-sugg-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+.studio-draft-label { display: block; font-size: .74rem; color: var(--muted); margin: 12px 0 4px; }
+.studio-draft-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .studio-draft-cols { grid-template-columns: 1fr; } }
+.studio-draft-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+.studio-draft-actions .form-control { max-width: 240px; }
+
+/* Preview (drafts + examples) */
+.studio-preview {
+  border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+  background: #FBFCFD; color: #1A1C22; min-height: 220px; max-height: 560px; overflow: auto;
+}
+.studio-pv h3 { font-size: .8rem; letter-spacing: .06em; margin: 14px 0 6px; text-transform: uppercase; }
+.studio-pv p { font-size: .8rem; line-height: 1.5; margin: 4px 0; }
+.studio-pv ul { margin: 4px 0 8px; padding-left: 18px; }
+.studio-pv li { font-size: .78rem; line-height: 1.45; margin-bottom: 3px; }
+.studio-pv-missing { color: #B3541E; font-style: italic; }
+/* Structure variants: content order comes from the builder; these are
+   visual accents only (typography/spacing), not new layouts. */
+.studio-pv.tpl-modern-minimalist p, .studio-pv.tpl-modern-minimalist li { font-size: .76rem; }
+.studio-pv.tpl-modern-minimalist h3 { color: #B3541E; }
+.studio-pv.tpl-leadership p:first-child { font-size: .95rem; font-weight: 600; }
+.studio-pv.tpl-skills-forward .studio-pv h3:nth-of-type(2) { border-bottom: 2px solid #C8F54A; padding-bottom: 2px; }
+
+.studio-shelf { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; }
+.studio-draft-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px; flex-wrap: wrap;
+  border: 1px solid var(--border); border-radius: 8px; margin-top: 8px; background: var(--surface);
+}
+.studio-draft-row .text-muted { flex: 1; font-size: .72rem; min-width: 140px; }
+.studio-ex-bullet { font-size: .8rem; padding: 6px 8px; border-left: 2px solid var(--accent); margin: 6px 0; background: var(--surface); border-radius: 0 8px 8px 0; }
+.studio-ex-guidance { font-size: .78rem; color: var(--muted); margin: 4px 0; line-height: 1.45; }
+.studio-template-note { font-size: .76rem; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin: 14px 0; }
+.studio-resources { margin-top: 10px; }
+.studio-resources a { color: var(--accent); font-size: .8rem; }
+.studio-flash { min-height: 18px; font-size: .76rem; color: var(--accent); margin-top: 12px; }
+
+/* Print-friendly view: "Print / Save as PDF" from the studio */
+.studio-print-area { display: none; }
+@media print {
+  body.studio-printing .app-header,
+  body.studio-printing .theme-fx,
+  body.studio-printing .nav-tabs,
+  body.studio-printing .studio-wf-row,
+  body.studio-printing .studio-controls,
+  body.studio-printing .studio-suggs,
+  body.studio-printing .studio-shelf,
+  body.studio-printing .studio-flash,
+  body.studio-printing .studio-draft-cols,
+  body.studio-printing .studio-head-note,
+  body.studio-printing .studio-pane { display: none !important; }
+  body.studio-printing .tab-pane { display: none !important; }
+  body.studio-printing #studio-panel { display: block !important; }
+  body.studio-printing .studio-print-area {
+    display: block !important;
+    color: #111;
+    background: #fff;
+  }
+  body.studio-printing .studio-pv { max-height: none; overflow: visible; background: #fff; border: 0; padding: 0; }
+}
+
+/* ==========================================================================
+   Heading-hierarchy correction (accessibility)
+   Static card headers were retagged h5 -> h2, sub-sections h5 -> h3,
+   upload zone h3 -> h4, banner/disc titles h6 -> h2/h3, career-fit
+   block h4 -> h3 in index.html. These rules pin the EXACT pre-change
+   appearance (h5/h6/h3 tag sizes from the cascade above) so the level
+   fix is visually inert.
+   ========================================================================== */
+.hd-card,
+.hd-sub {
+  font-size: 1.25rem; /* was the h5 size (line 848; no media-query override) */
+  font-weight: 600;
+  font-family: 'Sora', sans-serif;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+}
+.upload-text .hd-zone {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+  position: static;
+}
+.upload-text .hd-zone::before,
+.upload-text .hd-zone::after {
+  content: none;
+}
+
+/* Heading-hierarchy fix (Studio): the JS-generated pane section titles were
+   retagged h6 -> h3 in script.js. No studio-scoped CSS styled them, so they
+   took the global h6 cascade (1rem / 600 / Sora / -0.025em). The h3 tag rules
+   would re-size them to 1.1rem, so pin the font size back; weight, family,
+   tracking, line-height and margins are identical for h3 (838/2873 blocks). */
+.studio-sec-h {
+  font-size: 1rem;
+}
+
+/* ---- Studio AI writing block (OpenAI) ---- */
+.studio-ai {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: var(--surface-2);
+}
+.studio-ai-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.studio-ai-status { font-size: 0.75rem; }
+.studio-ai-content {
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-1, var(--surface-2));
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text);
+  max-height: 420px;
+  overflow: auto;
+  font-family: inherit;
+}
+.studio-ai-summary { font-size: 0.85rem; line-height: 1.5; color: var(--text); margin: 8px 0; }
+.studio-ai-suggs, .studio-ai-qs {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.studio-ai-suggs li, .studio-ai-qs li { margin-bottom: 4px; }
+.studio-ai-qs { color: var(--muted); }
+.studio-ai-err {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #d64545 14%, transparent);
+  border: 1px solid color-mix(in srgb, #d64545 40%, var(--border));
+}
+@media print {
+  .studio-ai-content, .studio-ai-suggs, .studio-ai-qs { display: block; }
 }

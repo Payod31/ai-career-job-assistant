@@ -1,0 +1,19 @@
+# Python backend dependencies for the OpenAI-powered endpoints.
+# Install with:  .venv\Scripts\python -m pip install -r requirements.txt
+# (or, from a fresh venv:  python -m venv .venv first.)
+
+flask>=3.0
+openai>=1.40
+python-dotenv>=1.0
+# Server-side resume text extraction for uploaded files (see doc_extract.py):
+pypdf>=4.0
+python-docx>=1.0
+# Production WSGI server for Render (local dev can still use `python server.py`):
+gunicorn>=21.0
+# Per-client rate limiting for the expensive AI routes (in-memory by default;
+# set RATELIMIT_STORAGE_URI for shared storage). Not applied to static files.
+flask-limiter>=3.0
+
+# Note: Gemini (free tier) is supported via the standard library (urllib) in
+# ai_client.py, so it adds NO extra dependency. Set `AI_PROVIDER=gemini` +
+# GEMINI_API_KEY to use it instead of OpenAI.

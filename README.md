@@ -53,6 +53,85 @@ Then `node server.js` and open `http://127.0.0.1:8000`. The card shows which rou
 
 > **Note:** the AI coach is opt-in. When you click "Get AI rewrites", the resume text goes to the selected provider (Groq/Gemini are third-party cloud APIs; Ollama keeps it on your machine). Everything else in the app still runs 100% locally.
 
+## OpenAI AI analysis & writing (Python backend)
+
+The **AI analysis (OpenAI)** card in Resume Analysis and the **AI writing (OpenAI)** block in
+Resume Studio call a small local Python (Flask) server that talks to the OpenAI
+Responses API. Your OpenAI key stays on this machine in `.env` and is **never** sent
+to the browser.
+
+**Setup (one time, Windows PowerShell):**
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+**Configure your key & model** in `.env` (copy `.env.example` if you don't have one):
+
+```ini
+OPENAI_API_KEY=sk-your-key-here
+OPENAI_MODEL=gpt-5.5
+```
+
+**Run** (this also serves the whole app):
+
+```powershell
+python server.py
+```
+
+Then open **http://127.0.0.1:8000/** — the AI cards appear in the Resume and Studio tabs.
+
+- If your account can't use `gpt-5.5`, change `OPENAI_MODEL` in `.env` to a model
+  you have access to, then restart the server.
+- To confirm your model id works with ONE live (paid) call: `python smoke_test.py`.
+- Automated tests are mocked and cost nothing: `python tests\test_backend.py`.
+- The node-based free "AI coach" above is unchanged and can run separately via `node server.js`.
+
+> Your resume text is sent to OpenAI **only** when you click an AI button — the app
+> never uploads it automatically. Each click is a fresh request; a failed request
+> shows an error and never presents an old result as new.
+
+## Deploy to Render (free tier, Gemini)
+
+The same Flask app (`server.py`) can be deployed to a **free Render web service**
+and powered by the **Gemini free API tier** (Google AI Studio), so you can run the
+whole app in the browser with no paid OpenAI calls.
+
+**How the provider is chosen** (all server-side, via environment variables — never in
+the browser or in Git):
+
+- `AI_PROVIDER` — `openai`, `gemini`, or `auto` (default). Set **`gemini`** for the free deploy.
+- `GEMINI_API_KEY` — your Google AI Studio key (free key at aistudio.google.com/apikey).
+- `GEMINI_MODEL` — e.g. `gemini-2.5-flash` (default). Change to any model your account can access.
+- A Gemini failure **never** silently falls back to OpenAI.
+
+### Render settings
+
+| Setting | Value |
+|---|---|
+| Runtime / Language | Python 3 |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `gunicorn --bind 0.0.0.0:$PORT server:app` |
+| Region | any (pick the closest) |
+| Plan | Free (Basic) web service |
+
+**Environment variables to set in Render (not in the repo):**
+- `AI_PROVIDER=gemini`
+- `GEMINI_API_KEY=<your Google AI Studio key>`
+- `GEMINI_MODEL=gemini-2.5-flash` (or another model you have access to)
+- Do **not** set `OPENAI_API_KEY` on the free deploy (so no paid OpenAI calls occur).
+
+The app serves the frontend **and** the `/api/...` endpoints from the same origin,
+so no CORS is required and no database is used. Gunicorn (in `requirements.txt`) is
+the production WSGI server; `python server.py` still works for local development.
+
+> **Free-tier notes:** the free web service sleeps after ~15 min idle (the next
+> request wakes it in ~30–60s), and the Gemini free tier has per-minute/per-day
+> request limits. Hitting a limit surfaces a clear "rate/quota limit reached" message
+> in the UI rather than a crash.
+
 ## Libraries (loaded from CDN)
 
 - [Bootstrap 5](https://getbootstrap.com/) — layout & components

@@ -1,0 +1,7 @@
+Zoë Müller
+zoe.mueller@example.com · +49 170 000 0000 · zoe.dev
+
+PROFILÉ 2019–aujourd'hui
+– Développé React & TypeScript SaaS (04/2019 – aujourd'hui)
+– Échéances : 12 releases/an, 99,9 % de disponibilité
+— Compétences : TypeScript, React, Node.js, PostgreSQL, Docker, CI/CD

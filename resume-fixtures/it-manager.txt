@@ -1,0 +1,22 @@
+Vikram Iyer
+Senior IT Manager | Bengaluru
+vikram.iyer@example.com | +91 90000 12345 | linkedin.com/in/vikramiyer
+
+PROFESSIONAL SUMMARY
+IT leader with 12+ years across engineering, finance and healthcare operations.
+
+EXPERIENCE
+Senior IT Manager, Meridian Engineering (Mar 2019 – Present)
+· Led a 14-person engineering team delivering 99.95% platform availability
+· Migrated 300+ servers to AWS, cutting infra cost 28% (about 1.4 crore annually)
+· Drove ISO 27001 certification; reduced audit findings by 60%
+
+IT Manager, Acme Healthcare (Jun 2015 – Feb 2019)
+· Owned service desk for 800 staff; NPS improved from 31 to 58
+· Implemented SDLC governance, release defects down 45%
+
+EDUCATION
+B.E. Computer Science, 2011 – 2015, University of Pune
+
+SKILLS
+AWS, Azure, ITIL, ISO 27001, Kubernetes, Active Directory, ServiceNow, PowerShell, Jira, Vendor Management

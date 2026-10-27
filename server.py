@@ -21,6 +21,7 @@ The frontend is fully client-side and keeps working without these endpoints; the
 AI buttons simply report that the AI server is unavailable.
 """
 
+import json
 import logging
 import os
 
@@ -101,7 +102,7 @@ def create_app():
             # Which providers have a key configured (booleans only, never the key).
             "providers": {"openai": ai_client.api_key_configured(),
                           "gemini": ai_client.gemini_key_configured()},
-            "endpoints": ["/api/analyze-resume", "/api/resume-studio"],
+            "endpoints": ["/api/analyze-resume", "/api/resume-studio", "/api/match-insight"],
             "note": ("%s key is configured." % label
                      if key_conf else
                      "%s key is NOT configured — AI features are disabled." % label),
@@ -282,6 +283,49 @@ def create_app():
             instructions=instr,
             candidate_info=candidate,
             target_role=role,
+            _payload=payload,
+        )
+
+    # ------------------------------------------------- match-insight
+    @app.route("/api/match-insight", methods=["POST"])
+    @limiter.limit(ai_rate_limit)
+    def match_insight():
+        payload = _json_payload()
+        text = _bounded(payload.get("resumeText"), MAX_FIELD_LEN)
+        if not text:
+            return _error("no_input",
+                          "resumeText is required for the match insight.", 400)
+        job = _bounded(payload.get("jobDescription"), MAX_JOB_LEN)
+        role = _bounded(payload.get("targetRole"), 200)
+        sb_raw = payload.get("scoreBreakdown")
+        if not isinstance(sb_raw, dict):
+            sb_raw = None
+        # Sanitize to a compact, bounded context string: numeric 0-100 scores
+        # and a short verdict only — never free-form user content.
+        sb = None
+        if sb_raw:
+            clean = {}
+            for k in ("skills", "experience", "education", "overall"):
+                try:
+                    v = int(round(float(sb_raw.get(k))))
+                except (TypeError, ValueError, OverflowError):
+                    # OverflowError: non-finite values ("Infinity", "inf",
+                    # "1e999") parse to ±inf, and int(round(±inf)) overflows —
+                    # drop them like the junk above instead of 500ing.
+                    continue
+                if 0 <= v <= 100:
+                    clean[k] = v
+            verdict = str(sb_raw.get("verdict") or "").strip()[:40]
+            if verdict:
+                clean["verdict"] = verdict
+            if clean:
+                sb = json.dumps(clean)
+        return _dispatch(
+            ai_client.run_match_insight,
+            resume_text=text,
+            job_description=job,
+            target_role=role,
+            score_breakdown=sb,
             _payload=payload,
         )
 

@@ -225,6 +225,31 @@ STUDIO_SCHEMA = {
     "additionalProperties": False,
 }
 
+MATCH_INSIGHT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": ["string", "null"]},
+        "evidence": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "claim": {"type": ["string", "null"]},
+                    "resume_quote": {"type": ["string", "null"]},
+                    "jd_requirement": {"type": ["string", "null"]},
+                    "status": {"type": "string", "enum": ["supported", "missing"]},
+                },
+                "required": ["claim", "resume_quote", "jd_requirement", "status"],
+                "additionalProperties": False,
+            },
+        },
+        "gaps": {"type": "array", "items": {"type": ["string", "null"]}},
+        "next_steps": {"type": "array", "items": {"type": ["string", "null"]}},
+    },
+    "required": ["summary", "evidence", "gaps", "next_steps"],
+    "additionalProperties": False,
+}
+
 STUDIO_OPERATIONS = {
     "improve": "Improve the candidate's existing resume. Keep every real fact "
                "exactly as stated; tighten wording, reorder for impact, and flag "
@@ -312,6 +337,65 @@ def studio_user_message(operation, resume_text, job_description, instructions,
         blocks.append("INSTRUCTIONS: " + instructions)
     blocks.append("Operation: " + operation)
     return "\n\n".join(blocks)
+
+
+def _match_insight_instructions(has_jd):
+    base = (
+        "You are a careful career-match analyst. Work ONLY from the resume text "
+        "and the job description (or target role) provided below. Ground every "
+        "claim in SHORT VERBATIM excerpts: 'resume_quote' must be text that "
+        "actually appears in the resume; if the resume does not contain evidence "
+        "for a claim, set status='missing' and leave resume_quote empty — never "
+        "invent, paraphrase-as-verbatim, or pad quotes. The deterministic SCORE "
+        "BREAKDOWN is context supplied by the app's own local scoring; do not "
+        "present it as your own or as AI-computed, and do not change its numbers. "
+        "Be specific and concise. Respond in JSON only."
+    )
+    if has_jd:
+        base += (
+            " For 'gaps', list concrete skills or experience the job requires "
+            "that are absent or unclear in the resume. In 'next_steps', give a "
+            "short prioritized list of actions the candidate can take."
+        )
+    return base
+
+
+def match_insight_user_message(resume_text, job_description, target_role,
+                              score_breakdown):
+    parts = []
+    if score_breakdown:
+        parts.append(
+            "SCORE BREAKDOWN (deterministic, computed locally by the app — "
+            "context only, NOT your analysis): " + score_breakdown)
+    if target_role:
+        parts.append("Target role: " + target_role)
+    parts.append("RESUME TEXT:\n---\n" + resume_text + "\n---")
+    if job_description:
+        parts.append("JOB DESCRIPTION:\n---\n" + job_description + "\n---")
+    return "\n\n".join(parts)
+
+
+def _match_insight_dict(raw):
+    """Coerce a raw model dict into the exact shape the frontend renders."""
+    ev = []
+    for x in ((raw or {}).get("evidence") or [])[:20]:
+        if not isinstance(x, dict):
+            continue
+        status = str(x.get("status") or "missing").strip().lower()
+        if status not in ("supported", "missing"):
+            status = "missing"
+        ev.append({
+            "claim": str(x.get("claim") or "").strip(),
+            "resume_quote": str(x.get("resume_quote") or "").strip(),
+            "jd_requirement": str(x.get("jd_requirement") or "").strip(),
+            "status": status,
+        })
+    return {
+        "summary": str((raw or {}).get("summary") or "").strip(),
+        "evidence": ev,
+        "gaps": _str_list((raw or {}).get("gaps")),
+        "next_steps": _str_list((raw or {}).get("next_steps")),
+    }
 
 
 # --- defensive JSON parsing --------------------------------------------------
@@ -861,6 +945,71 @@ def _run_studio_gemini(operation, resume_text="", job_description=None,
     }
 
 
+def _run_match_insight_openai(resume_text, job_description=None,
+                              target_role=None, score_breakdown=None):
+    """OpenAI provider: explain a deterministic match score with cited evidence."""
+    client = get_client()
+    resume_text = (resume_text or "").strip()
+    if not resume_text:
+        raise ModelError("empty_input", "No resume text to explain.")
+    if len(resume_text) > 24000:
+        resume_text = resume_text[:24000]
+    sb = (score_breakdown or "")[:500]
+
+    resp = _safe_call(
+        client.responses.create,
+        model=model_name(),
+        instructions=_match_insight_instructions(bool(job_description)),
+        input=match_insight_user_message(resume_text, job_description, target_role, sb),
+        text={"format": {"type": "json_schema", "name": "match_insight",
+                         "schema": MATCH_INSIGHT_SCHEMA}},
+    )
+    raw = _parse_json_loose(_extract_text(resp))
+    if raw is None:
+        raise ModelError("invalid_response",
+            "The model's reply could not be read as structured data. Try again.")
+    data = _match_insight_dict(raw)
+    return {
+        "insight": data,
+        "model": model_name(),
+        "had_jd": bool(job_description),
+        "resume_chars_used": len(resume_text),
+    }
+
+
+def _run_match_insight_gemini(resume_text, job_description=None,
+                              target_role=None, score_breakdown=None):
+    if not (resume_text or "").strip():
+        raise ModelError("empty_input", "No resume text to explain.")
+    key = _gemini_key()
+    if not key:
+        raise ConfigError(
+            "GEMINI_API_KEY is not configured. Set it in your environment (or "
+            "Render's env vars) and restart the server.")
+    resume_text = (resume_text or "").strip()
+    if len(resume_text) > 24000:
+        resume_text = resume_text[:24000]
+    sb = (score_breakdown or "")[:500]
+    model = gemini_model_name()
+    text = _gemini_generate_guarded(
+        _gemini_generate,
+        model,
+        _match_insight_instructions(bool(job_description)),
+        match_insight_user_message(resume_text, job_description, target_role, sb),
+        _to_gemini_schema(MATCH_INSIGHT_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
+    raw = _parse_json_loose(text)
+    if raw is None:
+        raise ModelError("invalid_response",
+            "Gemini's reply could not be read as structured data. Try again.")
+    return {
+        "insight": _match_insight_dict(raw),
+        "model": model,
+        "provider": "gemini",
+        "had_jd": bool(job_description),
+        "resume_chars_used": len(resume_text),
+    }
+
+
 # --- public dispatchers (provider chosen by AI_PROVIDER; never fall back) ---
 
 def run_analysis(resume_text, job_description=None, target_role=None):
@@ -878,3 +1027,15 @@ def run_studio(operation, resume_text="", job_description=None,
                                   instructions, candidate_info, target_role)
     return _run_studio_openai(operation, resume_text, job_description,
                               instructions, candidate_info, target_role)
+
+
+def run_match_insight(resume_text, job_description=None, target_role=None,
+                      score_breakdown=None):
+    """Explain a deterministic resume/JD match with cited, honest evidence,
+    using the ACTIVE provider (OpenAI or Gemini). `score_breakdown` is a
+    compact pre-formatted string of the app's LOCAL scores (context only)."""
+    if active_provider() == "gemini":
+        return _run_match_insight_gemini(resume_text, job_description,
+                                         target_role, score_breakdown)
+    return _run_match_insight_openai(resume_text, job_description,
+                                     target_role, score_breakdown)

@@ -852,5 +852,232 @@ class FiveHundredHardeningTests(unittest.TestCase):
         self.assertFalse(r.get_json()["ok"])
 
 
+# ---------------------------------------------------------------------------
+# /api/match-insight (explain_match) — mocked provider tests, same safety
+# guarantees: no live calls, no charges, keys never in responses.
+# ---------------------------------------------------------------------------
+MATCH_FAKE_INSIGHT = {
+    "summary": "Solid skills overlap; experience falls just short of the stated range.",
+    "evidence": [
+        {"claim": "SQL reporting experience", "resume_quote": "Built SQL reports weekly",
+         "jd_requirement": "SQL reporting", "status": "supported"},
+        {"claim": "Stated 5 years of management", "resume_quote": "",
+         "jd_requirement": "5+ years team leadership", "status": "missing"},
+    ],
+    "gaps": ["Team leadership duration not evidenced in the resume"],
+    "next_steps": ["Add a line quantifying team size and tenure under the leadership role"],
+}
+
+
+class MatchInsightTests(unittest.TestCase):
+
+    def setUp(self):
+        self._saved = {}
+        for k in ("AI_PROVIDER", "GEMINI_API_KEY", "GEMINI_MODEL", "OPENAI_API_KEY"):
+            self._saved[k] = os.environ.get(k)
+        os.environ["AI_PROVIDER"] = "gemini"
+        os.environ["GEMINI_API_KEY"] = GEMINI_FAKE_KEY
+        os.environ["GEMINI_MODEL"] = "gemini-2.5-flash"
+        os.environ.pop("OPENAI_API_KEY", None)
+
+        self.requests = []
+        self.behavior = None
+
+        def fake(payload, model, key, timeout):
+            self.requests.append((payload, model, key))
+            if self.behavior:
+                res = self.behavior(payload, model, key, timeout)
+                if isinstance(res, Exception):
+                    raise res
+                return res
+            return _gemini_ok(MATCH_FAKE_INSIGHT)
+
+        ai_client.set_gemini_request_for_testing(fake)
+        self.app = server.create_app().test_client()
+
+    def tearDown(self):
+        ai_client.set_gemini_request_for_testing(_gemini_unmocked_guard)
+        for k, v in self._saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def _post(self, payload):
+        return self.app.post("/api/match-insight", json=payload)
+
+    # 1. Success: structured, validated insight + provenance fields.
+    def test_success_returns_structured_insight(self):
+        r = self._post({"resumeText": "Jane\n- Built SQL reports weekly",
+                        "jobDescription": "SQL reporting required",
+                        "scoreBreakdown": {"skills": 80, "experience": 40,
+                                           "education": 100, "overall": 72,
+                                           "verdict": "Good match"},
+                        "requestId": "mi1"})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        body = r.get_json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["provider"], "gemini")
+        self.assertEqual(body["requestId"], "mi1")
+        ins = body["insight"]
+        self.assertEqual(ins["summary"], MATCH_FAKE_INSIGHT["summary"])
+        self.assertEqual(len(ins["evidence"]), 2)
+        self.assertEqual(ins["evidence"][0]["status"], "supported")
+        self.assertEqual(ins["evidence"][1]["status"], "missing")
+        # Evidence rows keep their four exact keys, coerced to strings.
+        self.assertEqual(set(ins["evidence"][0].keys()),
+                         {"claim", "resume_quote", "jd_requirement", "status"})
+
+    # 2. The local score breakdown is carried to the model as CONTEXT only,
+    #    and the current resume text is what gets sent.
+    def test_sends_local_breakdown_as_context_and_current_resume(self):
+        marker = "UNIQUE_RESUME_MARKER_GAMMA"
+        r = self._post({"resumeText": marker + "\n- built things",
+                        "jobDescription": "JD", "scoreBreakdown": {"skills": 42}})
+        self.assertEqual(r.status_code, 200)
+        user_text = self.requests[0][0]["contents"][0]["parts"][0]["text"]
+        self.assertIn(marker, user_text)
+        self.assertIn("SCORE BREAKDOWN", user_text)
+        self.assertIn("skills", user_text)
+        self.assertIn("context only", user_text.lower())
+
+    # 3. Inputs: resume is mandatory; junk breakdowns never crash the route.
+    def test_missing_resume_rejected(self):
+        r = self._post({"jobDescription": "JD"})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.get_json()["code"], "no_input")
+
+    def test_non_dict_breakdown_ignored(self):
+        r = self._post({"resumeText": "Jane\n- x", "scoreBreakdown": "not-a-dict"})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        user_text = self.requests[0][0]["contents"][0]["parts"][0]["text"]
+        self.assertNotIn("SCORE BREAKDOWN", user_text)
+
+    def test_breakdown_values_clamped_and_bounded(self):
+        r = self._post({"resumeText": "Jane\n- x",
+                        "scoreBreakdown": {"skills": 250, "experience": -5,
+                                           "overall": "junk", "verdict": "x" * 500}})
+        self.assertEqual(r.status_code, 200)
+        user_text = self.requests[0][0]["contents"][0]["parts"][0]["text"]
+        self.assertNotIn("250", user_text)          # out-of-range scores dropped
+        self.assertNotIn("-5", user_text)
+        self.assertNotIn("x" * 41, user_text)       # verdict truncated to 40 chars
+        self.assertIn("x" * 40, user_text)          # ...but not dropped entirely
+
+    def test_non_finite_breakdown_values_are_safe(self):
+        # Regression: "Infinity" / "1e999" parse to ±inf and made
+        # int(round(±inf)) raise OverflowError, which the route's except
+        # clause used to miss — a generic 500 instead of clean handling.
+        r = self._post({"resumeText": "Jane\n- x",
+                        "scoreBreakdown": {"skills": "Infinity", "experience": "1e999",
+                                            "education": "NaN", "overall": 50}})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        self.assertTrue(r.get_json()["ok"])
+        user_text = self.requests[0][0]["contents"][0]["parts"][0]["text"]
+        self.assertNotIn("Infinity", user_text)
+        self.assertNotIn("1e999", user_text)
+        self.assertNotIn("NaN", user_text)
+        self.assertIn("SCORE BREAKDOWN", user_text)  # the in-bounds 50 survived
+        self.assertIn("50", user_text)
+        # All four non-finite -> no breakdown context at all, still a 200.
+        r2 = self._post({"resumeText": "Jane\n- x",
+                         "scoreBreakdown": {"skills": "inf", "experience": "-Infinity",
+                                            "education": "1e999", "overall": "inf"}})
+        self.assertEqual(r2.status_code, 200, r2.get_data(as_text=True))
+        self.assertNotIn("SCORE BREAKDOWN",
+                         self.requests[1][0]["contents"][0]["parts"][0]["text"])
+
+    # 4. Provider failures map to the established controlled errors.
+    def test_gemini_429_maps_to_rate_limit(self):
+        self.behavior = lambda p, m, k, t: ai_client.GeminiHTTPError(
+            429, {"error": {"status": "RESOURCE_EXHAUSTED"}})
+        r = self._post({"resumeText": "Jane\n- x", "jobDescription": "JD"})
+        self.assertEqual(r.status_code, 502)
+        self.assertEqual(r.get_json()["code"], "rate_limit")
+
+    def test_timeout_maps_to_clean_error(self):
+        self.behavior = lambda p, m, k, t: TimeoutError("read timed out")
+        r = self._post({"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 502)
+        self.assertEqual(r.get_json()["code"], "timeout")
+
+    def test_malformed_model_output_rejected(self):
+        self.behavior = lambda p, m, k, t: _gemini_ok_raw("this is not json {{{")
+        r = self._post({"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(r.get_json()["code"], "invalid_response")
+
+    def test_missing_gemini_key_reports_config_error(self):
+        os.environ["GEMINI_API_KEY"] = ""
+        r = self._post({"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 503)
+        self.assertEqual(r.get_json()["code"], "no_key")
+
+    def test_key_never_leaks_to_client(self):
+        r = self._post({"resumeText": "Jane\n- x"})
+        self.assertNotIn(GEMINI_FAKE_KEY, r.get_data(as_text=True))
+
+    # 5. OpenAI path (mocked client): success + a provider error mapping.
+    def test_openai_success_and_provider_error(self):
+        os.environ["AI_PROVIDER"] = "openai"
+        os.environ["OPENAI_API_KEY"] = FAKE_KEY
+        os.environ["OPENAI_MODEL"] = FAKE_MODEL
+        os.environ.pop("GEMINI_API_KEY", None)
+        self.fake = FakeClient()
+        self.fake.responses = self.fake._Responses(self.fake)
+        install_fake(self.fake)
+        app = server.create_app().test_client()
+        r = app.post("/api/match-insight",
+                     json={"resumeText": "Jane\n- x", "jobDescription": "JD"})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        body = r.get_json()
+        self.assertIn("insight", body)
+        self.assertEqual(body["model"], FAKE_MODEL)
+        # And a simulated provider error maps to a clean 502, never a 500.
+        self.fake._behavior = lambda kwargs: _sim_api_error("boom", "APIError")
+        r2 = app.post("/api/match-insight", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r2.status_code, 502)
+        self.assertFalse(r2.get_json()["ok"])
+
+
+# ---------------------------------------------------------------------------
+# /api/match-insight joins the per-client rate limit on the expensive routes.
+# ---------------------------------------------------------------------------
+class MatchInsightRateLimitTests(unittest.TestCase):
+
+    def setUp(self):
+        self._saved = {}
+        for k in ("AI_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL",
+                  "GEMINI_API_KEY", "AI_RATE_LIMIT", "RATELIMIT_STORAGE_URI",
+                  "TRUSTED_PROXIES"):
+            self._saved[k] = os.environ.get(k)
+        reset_env()
+        os.environ["AI_PROVIDER"] = "openai"
+        os.environ["GEMINI_API_KEY"] = "gem-disabled-in-mi-tests"
+        os.environ["AI_RATE_LIMIT"] = "2/minute"
+        self.fake = FakeClient()
+        self.fake.responses = self.fake._Responses(self.fake)
+        install_fake(self.fake)
+        self.flask_app = server.create_app()
+        self.app = self.flask_app.test_client()
+
+    def tearDown(self):
+        ai_client.set_client_for_testing(_OpenAIUnmockedGuard())
+        for k, v in self._saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def test_match_insight_rate_limited(self):
+        self.assertEqual(self.app.post("/api/match-insight",
+                                       json={"resumeText": "a\n- x"}).status_code, 200)
+        self.assertEqual(self.app.post("/api/match-insight",
+                                       json={"resumeText": "b\n- y"}).status_code, 200)
+        r = self.app.post("/api/match-insight", json={"resumeText": "c\n- z"})
+        self.assertEqual(r.status_code, 429)
+        self.assertFalse(r.get_json()["ok"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

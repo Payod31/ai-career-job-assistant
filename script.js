@@ -306,6 +306,10 @@ let jobSourceLabel = '';
 // editors have been changed since the last analysis (stale-result guard, Rule 5).
 let analyzedResumeSig = '';
 let analyzedJdSig = '';
+// The JD TEXT the current careerFitData was parsed from — set at every
+// parse site. The AI match-insight request sends THIS (what the deterministic
+// score was computed from), never the possibly-edited editor content.
+let analyzedJdText = '';
 
 // A cheap, collision-good-enough signature of an input's text. Not a security
 // hash — just enough to tell "editor unchanged since last analysis".
@@ -559,6 +563,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function aiCacheMatches(entry, raw, jd, role) {
     return !!entry && entry.raw === raw && entry.jd === jd && entry.role === role;
   }
+
+  // ---- AI match-insight state (Match tab): same dedup discipline as above.
+  // The deterministic breakdown is part of the identity, so a re-scoring that
+  // changes ANY bar changes the signature and forces a fresh request.
+  let matchInsightCache = null; // {resume, jd, breakdownKey, data, at}
+  let matchInsightInFlight = false;
+  let matchInsightSeq = 0;
+  let lastMatchBreakdown = null; // {skills, experience, education, overall, verdict} from the last render
   // Active provider/model info (fetched once at startup from the EXISTING
   // /api/health endpoint) so UI labels reflect the real provider instead of
   // hard-coding "OpenAI". Null when the server isn't reachable — labels then
@@ -674,9 +686,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const liveHost = document.getElementById('aiAnalyzeResults');
       const liveStatus = document.getElementById('aiAnalyzeStatus');
       if (!res.ok || !data.ok) {
-        // data.error is provider-specific (names the right key/model); no
-        // hard-coded provider hint here.
-        throw new Error(data.error || ('HTTP ' + res.status));
+        // data.error is provider-specific (names the right key/model); carry
+        // the transport facts (status / code / Retry-After) so the catch
+        // below can tell a platform hiccup apart from a config or provider
+        // failure instead of guessing.
+        const err = new Error(data.error || ('HTTP ' + res.status));
+        err.status = res.status;
+        err.code = data.code || '';
+        try { err.retryAfter = res.headers && res.headers.get ? res.headers.get('Retry-After') : null; }
+        catch (_) { err.retryAfter = null; }
+        throw err;
       }
       aiAnalysisCache = { raw, jd, role: targetRole, data };
       renderAiAnalysis(data, liveHost, data.model);
@@ -687,9 +706,25 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       if (seq !== aiAnalyzeSeq) return;
       let msg = e && e.message ? e.message : String(e);
-      // No response at all (fetch rejected or HTTP 404/405) means the local
-      // server isn't being served — point the user at the exact command.
-      if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
+      // Distinguish WHAT failed, from the facts the response carried —
+      // a 503 is NOT assumed to be a cold start; it is described exactly.
+      if (e && e.code === 'no_key') {
+        msg = 'The AI key is not configured on the server (HTTP 503, code "no_key"). ' +
+          'Set the provider key in the backend environment and restart — the local checks above still work.';
+      } else if (e && (e.code === 'rate_limit' || e.status === 429)) {
+        msg = 'Too many AI requests (rate limit). Wait a minute or two, then try again.';
+      } else if (e && (e.status === 503 || e.status === 502) && e.retryAfter) {
+        msg = 'The AI server is temporarily unavailable (HTTP ' + e.status + ', retry in ~' +
+          e.retryAfter + 's). This can happen when a free instance is waking up or the ' +
+          'provider is overloaded — it is NOT a problem with your resume. ' +
+          'Wait a few seconds and click Try again. No automatic retry is made.';
+      } else if (e && e.status === 503) {
+        msg = 'The AI server responded 503 (temporarily unavailable) — this may be a ' +
+          'platform sleep or an overloaded backend, not necessarily the AI provider. ' +
+          'Wait a moment and click Try again.';
+      } else if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
+        // No response at all (fetch rejected or 404/405) means the backend
+        // isn't being served — point the user at the exact fix.
         msg = 'The AI server is not available. Start it with `python server.py` ' +
           'or deploy the backend — the local checks above still work.';
       }
@@ -710,6 +745,151 @@ document.addEventListener('DOMContentLoaded', () => {
   // local checks render — the user's single action also gets the AI read.
   function maybeRunAiAnalyze() {
     if (lastAnalyzedRaw) runAiAnalyze(false);
+  }
+
+  // ---- AI Match Insights (Match tab) ----
+  // Explains the deterministic match with cited, honest evidence from the
+  // ACTIVE provider. The local score is what the request is ABOUT (sent as
+  // context and shown unchanged next to the AI block); the AI block is
+  // labeled, deduped on (resume + analyzed JD + breakdown), in-flight
+  // guarded, and degrades to an error state — it never fakes success or
+  // re-serves a stale insight as fresh.
+  function matchInsightIdentity() {
+    const resume = (resumeData && resumeData.rawText) || lastAnalyzedRaw || '';
+    return {
+      resume: resume,
+      jd: analyzedJdText || '',
+      breakdownKey: lastMatchBreakdown ? JSON.stringify(lastMatchBreakdown) : ''
+    };
+  }
+  function renderMatchInsight(data, host, statusEl) {
+    if (!host) return;
+    const r = data.insight || {};
+    const ev = (Array.isArray(r.evidence) ? r.evidence : []).filter(v => v && v.claim);
+    const row = (v) => '<div class="mi-ev">' +
+        (v.resume_quote ? '<div><strong>In your resume:</strong> &ldquo;' + escAttr(v.resume_quote) + '&rdquo;</div>'
+                        : '<div class="text-muted">(no matching resume text found — marked as missing, not invented)</div>') +
+        '<div><strong>The JD wants:</strong> ' + escAttr(v.jd_requirement || '—') + '</div>' +
+        '<div class="mi-ev-status mi-ev-' + v.status + '">' + (v.status === 'supported' ? '✓ supported' : '✗ not evidenced in your resume') + '</div>' +
+        (v.claim ? '<div class="mi-ev-claim">' + escAttr(v.claim) + '</div>' : '') +
+      '</div>';
+    host.innerHTML =
+      (r.summary ? '<div class="mi-summary"><strong>' + escAttr(r.summary) + '</strong></div>' : '') +
+      (ev.length ? '<div class="mi-rows">' + ev.map(row).join('') + '</div>' : '') +
+      (r.gaps && r.gaps.length
+        ? '<div class="mi-sec"><h6>Gaps</h6><ul class="mi-list">' + r.gaps.map(g => '<li>' + escAttr(g) + '</li>').join('') + '</ul></div>'
+        : '') +
+      (r.next_steps && r.next_steps.length
+        ? '<div class="mi-sec"><h6>Next steps</h6><ol class="mi-list">' + r.next_steps.map(s => '<li>' + escAttr(s) + '</li>').join('') + '</ol></div>'
+        : '') +
+      '<p class="text-muted mi-model" style="font-size:0.7rem;margin-top:8px">Generated by ' + escAttr((data.provider === 'gemini' ? 'Gemini ' : 'OpenAI ') + (data.model || 'AI')) +
+      ' — quotes are verbatim; anything it could not find is marked missing, never invented.</p>' +
+      '<button type="button" class="rf-fix-btn rf-ai-rerun" data-match-ai-rerun>Re-run for a fresh read</button>';
+    if (statusEl) statusEl.textContent = 'AI match insight ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
+  }
+  // renderMatchInsight already ends with the re-run button — call sites must
+  // NOT append a second one.
+  async function runMatchInsight(force) {
+    const statusEl = document.getElementById('matchAiStatus');
+    const host = document.getElementById('matchAiResults');
+    // Known limitation: AI Match Insights requires a resume AND an analyzed
+    // job description. The target-role-only flow (career fit with no JD) does
+    // NOT support AI match insights — #matchAiBtn is disabled there and this
+    // guard bails out; target-role-only AI support is intentionally not
+    // implemented.
+    if (!resumeAvailable() || !jobAvailable()) {
+      if (statusEl) statusEl.textContent = 'Run the local match first (resume + job description), then ask for the AI read.';
+      return;
+    }
+    if (matchInsightInFlight) return; // no concurrent requests
+    const id = matchInsightIdentity();
+    if (!force && matchInsightCache && matchInsightCache.resume === id.resume
+        && matchInsightCache.jd === id.jd && matchInsightCache.breakdownKey === id.breakdownKey) {
+      // Identical inputs + identical local scores: reuse this session's read,
+      // labeled as previous — no new API call.
+      renderMatchInsight(matchInsightCache.data, host, null);
+      if (statusEl) statusEl.textContent = 'Previous AI read of this same match — no new request was made.';
+      return;
+    }
+    matchInsightInFlight = true;
+    matchInsightSeq += 1;
+    const seq = matchInsightSeq;
+    if (host) host.innerHTML = '';
+    const targetRole = (document.getElementById('targetRoleSelect') || {}).value || '';
+    if (statusEl) statusEl.textContent = 'Contacting ' + (aiProviderWord() || 'the AI provider') + '…';
+    try {
+      const res = await fetch('/api/match-insight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeText: id.resume,
+          jobDescription: id.jd,
+          targetRole: targetRole,
+          scoreBreakdown: lastMatchBreakdown || undefined,
+          requestId: 'm' + seq
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (seq !== matchInsightSeq) return; // superseded by a newer request
+      // Re-query after the await (a re-render would have detached the nodes).
+      const liveHost = document.getElementById('matchAiResults');
+      const liveStatus = document.getElementById('matchAiStatus');
+      if (!res.ok || !data.ok) {
+        const err = new Error(data.error || ('HTTP ' + res.status));
+        err.status = res.status;
+        err.code = data.code || '';
+        try { err.retryAfter = res.headers && res.headers.get ? res.headers.get('Retry-After') : null; }
+        catch (_) { err.retryAfter = null; }
+        throw err;
+      }
+      matchInsightCache = { resume: id.resume, jd: id.jd, breakdownKey: id.breakdownKey, data };
+      renderMatchInsight(data, liveHost, liveStatus);
+    } catch (e) {
+      if (seq !== matchInsightSeq) return;
+      let msg = e && e.message ? e.message : String(e);
+      if (e && e.code === 'no_key') {
+        msg = 'The AI key is not configured on the server (HTTP 503, code "no_key"). The local score above is unchanged — set the key in the backend to enable the AI read.';
+      } else if (e && (e.code === 'rate_limit' || e.status === 429)) {
+        msg = 'Too many AI requests (rate limit). Wait a minute or two, then try again.';
+      } else if (e && (e.status === 503 || e.status === 502) && e.retryAfter) {
+        msg = 'The AI server is temporarily unavailable (HTTP ' + e.status + ', retry in ~' + e.retryAfter +
+          's) — often a free instance waking up. Wait a few seconds and click Try again. The local score above is untouched.';
+      } else if (e && e.status === 503) {
+        msg = 'The AI server responded 503 (temporarily unavailable). Wait a moment and try again — the local score above is unchanged.';
+      } else if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
+        msg = 'The AI backend is not reachable. Start it with `python server.py` or deploy it — the local score above still works.';
+      }
+      // A failure for THESE inputs never leaves a success-looking read.
+      const liveHost = document.getElementById('matchAiResults');
+      const liveStatus = document.getElementById('matchAiStatus');
+      if (matchInsightCache && matchInsightCache.resume === id.resume
+          && matchInsightCache.jd === id.jd && matchInsightCache.breakdownKey === id.breakdownKey) {
+        matchInsightCache = null;
+      }
+      if (liveStatus) liveStatus.textContent = 'AI match insight failed: ' + msg + ' The local score above is unchanged — try again when ready.';
+      if (liveHost) liveHost.innerHTML =
+        '<div class="rf-ai-err text-danger" style="font-size:0.8rem">' + escAttr(msg) +
+        ' <button type="button" class="rf-fix-btn rf-ai-rerun" data-match-ai-rerun>Try again</button></div>';
+    } finally {
+      if (seq === matchInsightSeq) matchInsightInFlight = false;
+    }
+  }
+  // Re-show the AI section's current state (cached / failed / empty) after
+  // renderMatchResults rebuilds #matchResults from scratch.
+  function syncMatchInsightSection() {
+    const host = document.getElementById('matchAiResults');
+    const statusEl = document.getElementById('matchAiStatus');
+    if (!host || !statusEl) return;
+    if (matchInsightInFlight) { statusEl.textContent = 'Contacting ' + (aiProviderWord() || 'the AI provider') + '…'; return; }
+    const id = matchInsightIdentity();
+    if (matchInsightCache && matchInsightCache.resume === id.resume &&
+        matchInsightCache.jd === id.jd && matchInsightCache.breakdownKey === id.breakdownKey) {
+      renderMatchInsight(matchInsightCache.data, host, null);
+      statusEl.textContent = 'Previous AI read of this same match — no new request was made.';
+    } else {
+      host.innerHTML = '';
+      statusEl.textContent = 'Optional: a short AI read of why the score is what it is.';
+    }
   }
 
   function _aiList(items) {
@@ -767,6 +947,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const poorFitExplanation = document.getElementById('poor-fit-explanation');
   const jobResults = document.getElementById('jobResults');
   const matchResults = document.getElementById('matchResults');
+  // The AI match-insight actions are DELEGATED (registered here, right after
+  // the const, to avoid the TDZ trap): #matchResults is rebuilt on every
+  // local scoring run, so a listener on the container survives.
+  matchResults.addEventListener('click', e => {
+    if (e.target.closest('#matchAiBtn')) { runMatchInsight(false); return; }
+    if (e.target.closest('[data-match-ai-rerun]')) { runMatchInsight(true); return; }
+  });
   const matchFeedback = document.getElementById('match-feedback');
   const matchSuggestions = document.getElementById('match-suggestions');
   const discoveryResumeStatus = document.getElementById('discoveryResumeStatus');
@@ -1118,6 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (jobDescText) {
       careerFitData = parseJobDescription(jobDescText);
       analyzedJdSig = inputSig(jobDescText);
+      analyzedJdText = jobDescText;
       updateJobAnalysisUI();
       document.getElementById('jobResultsCard').classList.remove('d-none');
       // Show the results card
@@ -1414,6 +1602,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text) return;
     careerFitData = parseJobDescription(text);
     analyzedJdSig = inputSig(text);
+    analyzedJdText = text;
     updateJobAnalysisUI();
 
     const title = extractJobTitle(text);
@@ -1570,6 +1759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fold user corrections from the review state into the shared JD data
     careerFitData = parseJobDescription(jobInput.value.trim());
     analyzedJdSig = inputSig(jobInput.value.trim());
+    analyzedJdText = jobInput.value.trim();
     const expFix = (document.getElementById('jdReviewExp') || {}).value || '';
     const eduFix = (document.getElementById('jdReviewEdu') || {}).value || '';
     if (expFix.trim()) careerFitData.experienceRequired = expFix.trim();
@@ -2888,6 +3078,16 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(s => !resumeSet.has(s.toLowerCase().trim()))
       .slice(0, 5);
 
+    // The exact deterministic breakdown shown below — sent to the AI as
+    // context and used for the insight cache's identity.
+    lastMatchBreakdown = {
+      skills: Math.round(skillsMatch * 100),
+      experience: Math.round(expMatch * 100),
+      education: Math.round(eduMatch * 100),
+      overall: overall,
+      verdict: verdict
+    };
+
     // Rule 5: the score reflects the LAST ANALYZED inputs. If the editors have
     // changed since then, say so instead of presenting stale numbers as current.
     const resumeEditor = (document.getElementById('resumeInput') || {}).value || '';
@@ -2927,6 +3127,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <h5 style="font-family:'Sora';color:var(--text);font-weight:700;margin-bottom:6px">Overall Match Score</h5>
           <p style="color:var(--muted);font-size:0.9rem;line-height:1.65;margin:0">
             Weighted blend of skills (40%), experience (40%) and education (20%) between your resume and this job description.
+            <span class="match-local-tag">Local estimate — computed by this app's deterministic rules, not by AI.</span>
           </p>
         </div>
       </div>
@@ -2956,6 +3157,25 @@ document.addEventListener('DOMContentLoaded', () => {
           ${gapSkills.map(s => `<span class="chip" style="background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);color:#FF9999;font-size:0.8rem">${s}</span>`).join('')}
         </div>
       </div>` : '<div class="match-gap-card"><h6>Skill coverage</h6><p style="color:var(--accent);font-size:0.9rem;margin:0">✓ No detected skill gaps against this job description.</p></div>'}
+
+      <!-- AI Match Insights: a cited, honest read of the deterministic score
+           above (ACTIVE provider; the local numbers stay as shown). One
+           request per (resume + JD + breakdown); a failure shows an error
+           state and leaves the local score untouched. -->
+      <div class="match-ai">
+        <div class="match-ai-head">
+          <h6>AI Match Insights${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h6>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="matchAiBtn"
+            ${resumeAvailable() && jobAvailable() ? '' : 'disabled'}>Explain this match with AI</button>
+          <span id="matchAiStatus" class="text-muted" style="font-size:0.72rem">Optional: a short AI read of why the score is what it is.</span>
+        </div>
+        <p class="text-muted" style="font-size:0.72rem;margin-bottom:0">
+          This sends your resume and job description to your configured AI provider. It quotes your resume
+          verbatim and marks anything it cannot find as <em>missing</em> — it never invents evidence. The
+          score and bars above are the app's own deterministic calculation, unchanged by this.
+        </p>
+        <div id="matchAiResults"></div>
+      </div>
     `;
 
     // "Open Resume Analysis" link inside the saved-profile notice.
@@ -2963,6 +3183,10 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       switchTab('resumeAnalysis');
     });
+
+    // Re-show the AI section's own state (cached / failed / empty) after the
+    // rebuild above; stale results are never re-shown without the label.
+    syncMatchInsightSection();
   }
 
   // Assess resume against the selected target role.

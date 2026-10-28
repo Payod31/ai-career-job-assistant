@@ -853,6 +853,78 @@ class FiveHundredHardeningTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Gemini bounded-timeout regression (2026-10-27 production WORKER TIMEOUTs):
+# the Gemini (urllib) request cap must stay below Gunicorn's DEFAULT worker
+# timeout (30s) so a slow provider call ends in the clean JSON 'timeout'
+# error, never a SIGKILLed worker and a router-level 502.
+# ---------------------------------------------------------------------------
+class GeminiTimeoutBoundsTests(unittest.TestCase):
+
+    def setUp(self):
+        self._saved = {}
+        for k in ("AI_PROVIDER", "GEMINI_API_KEY", "GEMINI_MODEL",
+                   "OPENAI_API_KEY", "GEMINI_TIMEOUT"):
+            self._saved[k] = os.environ.get(k)
+        os.environ["AI_PROVIDER"] = "gemini"
+        os.environ["GEMINI_API_KEY"] = GEMINI_FAKE_KEY
+        os.environ["GEMINI_MODEL"] = "gemini-2.5-flash"
+        os.environ.pop("OPENAI_API_KEY", None)
+        os.environ.pop("GEMINI_TIMEOUT", None)
+
+        self.timeouts = []
+        def fake(payload, model, key, timeout):
+            self.timeouts.append(timeout)
+            return _gemini_ok({})
+        ai_client.set_gemini_request_for_testing(fake)
+        self.app = server.create_app().test_client()
+
+    def tearDown(self):
+        ai_client.set_gemini_request_for_testing(_gemini_unmocked_guard)
+        for k, v in self._saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    # 1. The default cap is below gunicorn's default 30s worker timeout.
+    def test_default_cap_preempts_default_worker_timeout(self):
+        r = self.app.post("/api/analyze-resume", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 200, r.get_data(as_text=True))
+        self.assertEqual(self.timeouts, [ai_client.gemini_timeout_seconds()])
+        cap = ai_client.gemini_timeout_seconds()
+        self.assertLess(cap, 30, "provider cap must beat gunicorn's 30s default")
+        self.assertGreater(cap, 10, "cap still leaves room for a real response")
+
+    # 2. GEMINI_TIMEOUT overrides the cap per deployment (clamped to >=5s).
+    def test_env_override_is_respected(self):
+        os.environ["GEMINI_TIMEOUT"] = "45"
+        self.assertEqual(ai_client.gemini_timeout_seconds(), 45)
+        os.environ["GEMINI_TIMEOUT"] = "2"  # too short is clamped, never 0/negative
+        self.assertEqual(ai_client.gemini_timeout_seconds(), 5)
+        os.environ["GEMINI_TIMEOUT"] = "garbage"
+        self.assertEqual(ai_client.gemini_timeout_seconds(),
+                         ai_client.GEMINI_TIMEOUT_DEFAULT)
+
+    # 3. A socket timeout at the cap is a clean 502 JSON 'timeout' error,
+    #    and the message names the cap that actually fired.
+    def test_provider_timeout_is_a_clean_json_error(self):
+        self.timeouts.clear()
+        os.environ["GEMINI_TIMEOUT"] = "25"
+        def slow(payload, model, key, timeout):
+            self.timeouts.append(timeout)
+            raise TimeoutError("read timed out")
+        ai_client.set_gemini_request_for_testing(slow)
+        r = self.app.post("/api/analyze-resume", json={"resumeText": "Jane\n- x"})
+        self.assertEqual(r.status_code, 502)
+        body = r.get_json()
+        self.assertEqual(body["code"], "timeout")
+        # The escape-mapping site cannot know the cap, so assert the shared
+        # "timed out" wording, not a number.
+        self.assertIn("timed out", body["error"])
+        self.assertNotIn(GEMINI_FAKE_KEY, r.get_data(as_text=True))
+
+
+# ---------------------------------------------------------------------------
 # /api/match-insight (explain_match) — mocked provider tests, same safety
 # guarantees: no live calls, no charges, keys never in responses.
 # ---------------------------------------------------------------------------

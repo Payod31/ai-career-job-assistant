@@ -25,6 +25,30 @@ DEFAULT_MODEL = "gpt-5.5"
 # the HTTP timeout; the caller (Flask) also enforces its own request limits.
 REQUEST_TIMEOUT_SECONDS = 90
 
+# The Gemini (urllib) path uses its own, SHORTER cap: it must stay below the
+# Gunicorn worker timeout so a slow provider call always ends in a clean JSON
+# "timeout" error instead of the worker being SIGKILLed mid-request and the
+# router returning a raw 502. Gunicorn's default worker timeout is 30s and the
+# production dashboard start command did not carry a --timeout override, so
+# the cap defaults to 25s; set GEMINI_TIMEOUT (seconds) to change it — keep it
+# at least ~10s below the gunicorn --timeout that is actually in effect.
+GEMINI_TIMEOUT_DEFAULT = 25
+
+
+def gemini_timeout_seconds():
+    """The wall-clock cap for a single Gemini request, in seconds.
+
+    Read per-call (like model_name) so `GEMINI_TIMEOUT` can be tuned without
+    an import dance. The default (25s) is deliberately below Gunicorn's
+    default 30s worker timeout: a slow provider call must end in the clean
+    JSON 'timeout' error, never a worker SIGKILL and a router-level 502.
+    """
+    raw = os.environ.get("GEMINI_TIMEOUT") or ""
+    try:
+        return max(5, int(raw.strip() or GEMINI_TIMEOUT_DEFAULT))
+    except ValueError:
+        return GEMINI_TIMEOUT_DEFAULT
+
 # A stable, user-safe error raised when the API key is missing.
 class ConfigError(Exception):
     pass
@@ -692,10 +716,13 @@ def _gemini_request(payload, model, key, timeout):
     except (TimeoutError, socket.timeout):
         # socket.timeout is aliased to TimeoutError on py3.10+; listing both
         # keeps this explicit. A socket-level read/connect timeout is a
-        # controlled 'timeout' error, not a server crash.
+        # controlled 'timeout' error, not a server crash. The message names
+        # the actual cap that fired (a parameter, never an env value) so the
+        # user can tell a provider slowness from a platform kill.
         raise ModelError("timeout",
-            "Google's API did not respond in time. Try again — very large "
-            "resumes can take a while.")
+            "Google's API timed out after %ss — the provider is slow or its "
+            "free tier is queued right now (very large resumes take longer). "
+            "Try again in a moment." % timeout)
     except ssl.SSLError:
         raise ModelError("network",
             "TLS error while contacting Google. Check your connection and "
@@ -845,9 +872,13 @@ def _map_transport_escapes(e):
     import socket
     import ssl
     if isinstance(e, (TimeoutError, socket.timeout)):
+        # This site sees a raw escape (tests raise it at the seam too), so
+        # the cap is not in scope — keep the wording identical in spirit to
+        # the in-urlopen message but without a number it cannot know.
         return ModelError("timeout",
-            "Google's API did not respond in time. Try again — very large "
-            "resumes can take a while.")
+            "Google's API timed out — the provider is slow or its free tier "
+            "is queued right now (very large resumes take longer). Try "
+            "again in a moment.")
     if isinstance(e, ssl.SSLError):
         return ModelError("network",
             "TLS error while contacting Google. Check your connection and "
@@ -893,7 +924,7 @@ def _run_analysis_gemini(resume_text, job_description=None, target_role=None):
         model,
         _analysis_instructions(bool(job_description)),
         analysis_user_message(resume_text, job_description, target_role),
-        _to_gemini_schema(ANALYSIS_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
+        _to_gemini_schema(ANALYSIS_SCHEMA), key, gemini_timeout_seconds())
     raw = _parse_json_loose(text)
     if raw is None:
         raise ModelError("invalid_response",
@@ -932,7 +963,7 @@ def _run_studio_gemini(operation, resume_text="", job_description=None,
                             instructions,
                             candidate_info if operation == "new_draft" else None,
                             target_role),
-        _to_gemini_schema(STUDIO_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
+        _to_gemini_schema(STUDIO_SCHEMA), key, gemini_timeout_seconds())
     raw = _parse_json_loose(text)
     if raw is None:
         raise ModelError("invalid_response",
@@ -996,7 +1027,7 @@ def _run_match_insight_gemini(resume_text, job_description=None,
         model,
         _match_insight_instructions(bool(job_description)),
         match_insight_user_message(resume_text, job_description, target_role, sb),
-        _to_gemini_schema(MATCH_INSIGHT_SCHEMA), key, REQUEST_TIMEOUT_SECONDS)
+        _to_gemini_schema(MATCH_INSIGHT_SCHEMA), key, gemini_timeout_seconds())
     raw = _parse_json_loose(text)
     if raw is None:
         raise ModelError("invalid_response",

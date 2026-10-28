@@ -11,16 +11,24 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    # --timeout 100: a Gemini request can take up to ai_client.REQUEST_TIMEOUT
-    # (90s). Gunicorn's default 30s worker timeout kills in-flight workers, so
-    # a slow-but-healthy AI call would die mid-request and surface as a 502
-    # Bad Gateway from Render's router. 100s > 90s cap, so a request that
-    # outlives this gets the clean JSON timeout error instead.
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 100 server:app
+    # --timeout 40: each Gemini request is capped at ai_client.GEMINI_TIMEOUT
+    # (default 25s; GEMINI_TIMEOUT env var). Gunicorn's DEFAULT worker timeout
+    # is 30s and kills in-flight workers before the 90s cap could ever
+    # produce a clean JSON error — the 2026-10-27 production WORKER TIMEOUTs
+    # prove the effective start command carried no --timeout flag, so the
+    # provider cap is now deliberately SHORTER than the default 30s: 25s +
+    # ~15s of slack. If this start command is overridden in the Render
+    # dashboard, its --timeout must stay above GEMINI_TIMEOUT for the same
+    # reason (the JSON timeout error must win, never a router 502).
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 40 server:app
     envVars:
       - key: AI_PROVIDER
         value: gemini
       - key: GEMINI_MODEL
         value: gemini-3.8-flash
+      # Optional per-environment override of the Gemini request cap (seconds);
+      # keep it >=10s below the effective gunicorn --timeout:
+      # - key: GEMINI_TIMEOUT
+      #   value: "25"
       # GEMINI_API_KEY must be entered privately in Render's environment
       # settings (do not commit it).

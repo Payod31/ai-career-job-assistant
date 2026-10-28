@@ -559,6 +559,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // a lossy signature (lengths/prefixes/suffixes can collide for different
   // texts and would mislabel an earlier read as "this same resume").
   let aiAnalysisCache = null;  // {raw, jd, role, data} of the last SUCCESSFUL read
+  let aiAnalysisFailure = null; // {raw, jd, role, msg} of the last FAILED request,
+                               // re-shown after a card rebuild instead of a
+                               // "request was made" claim
   let aiInFlight = false;       // a request is in flight; ignore re-triggers
   function aiCacheMatches(entry, raw, jd, role) {
     return !!entry && entry.raw === raw && entry.jd === jd && entry.role === role;
@@ -698,6 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw err;
       }
       aiAnalysisCache = { raw, jd, role: targetRole, data };
+      aiAnalysisFailure = null;
       renderAiAnalysis(data, liveHost, data.model);
       const prov = data.provider === 'gemini' ? 'Gemini' : 'OpenAI';
       if (liveStatus) liveStatus.textContent = 'Fresh ' + prov + ' analysis ready' + (data.model ? ' (model ' + data.model + ')' : '') + '.';
@@ -722,6 +726,14 @@ document.addEventListener('DOMContentLoaded', () => {
         msg = 'The AI server responded 503 (temporarily unavailable) — this may be a ' +
           'platform sleep or an overloaded backend, not necessarily the AI provider. ' +
           'Wait a moment and click Try again.';
+      } else if (e && e.status && e.status >= 500 && !e.code) {
+        // A 5xx with NO JSON error body: this is the platform router's own
+        // page, usually because the backend worker died mid-request
+        // (gunicorn worker timeout) — NOT a provider answer. Never show a
+        // bare "HTTP 502" here.
+        msg = 'The AI service is temporarily unavailable (HTTP ' + e.status + '). ' +
+          'The backend worker may have just restarted — wait a few seconds and ' +
+          'click Try again. No automatic retry is made.';
       } else if (/\bFailed to fetch\b|NetworkError|HTTP (404|405)\b/i.test(msg) || !msg) {
         // No response at all (fetch rejected or 404/405) means the backend
         // isn't being served — point the user at the exact fix.
@@ -729,8 +741,11 @@ document.addEventListener('DOMContentLoaded', () => {
           'or deploy the backend — the local checks above still work.';
       }
       // A failure for THIS input never leaves a success-looking result:
-      // clear any cached entry for the same exact inputs.
+      // clear any cached entry for the same exact inputs, and remember this
+      // failure so a card rebuild re-shows it instead of claiming a request
+      // was made.
       if (aiCacheMatches(aiAnalysisCache, raw, jd, targetRole)) aiAnalysisCache = null;
+      aiAnalysisFailure = { raw, jd, role: targetRole, msg };
       const liveHost = document.getElementById('aiAnalyzeResults');
       const liveStatus = document.getElementById('aiAnalyzeStatus');
       if (liveStatus) liveStatus.textContent = 'AI analysis failed: ' + msg + ' No result is shown — the local checks above are rule-based only.';
@@ -745,6 +760,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // local checks render — the user's single action also gets the AI read.
   function maybeRunAiAnalyze() {
     if (lastAnalyzedRaw) runAiAnalyze(false);
+  }
+
+  // Re-show the AI section's own state (cached / failed / not-yet-requested)
+  // after #resumeResults is rebuilt from scratch — a rebuild must never leave
+  // the status claiming "requested automatically" for a request that was not
+  // made, and must never re-serve a stale or failed result as a fresh one.
+  function syncAiAnalysisSection() {
+    const host = document.getElementById('aiAnalyzeResults');
+    const statusEl = document.getElementById('aiAnalyzeStatus');
+    if (!host || !statusEl) return;
+    if (aiInFlight) { statusEl.textContent = 'Contacting ' + (aiProviderWord() || 'the AI provider') + '…'; return; }
+    const raw = lastAnalyzedRaw || '';
+    const jd = ((document.getElementById('jobInput') || {}).value || '').trim();
+    const role = ((document.getElementById('targetRoleSelect') || {}).value || '');
+    if (aiCacheMatches(aiAnalysisCache, raw, jd, role)) {
+      renderAiAnalysis(aiAnalysisCache.data, host, aiAnalysisCache.data.model);
+      host.insertAdjacentHTML('beforeend',
+        '<button type="button" class="rf-fix-btn rf-ai-rerun" data-ai-rerun>Re-run for a fresh read</button>');
+      statusEl.textContent = 'Previous AI read of this same resume — no new request was made.';
+      return;
+    }
+    if (aiAnalysisFailure && aiAnalysisFailure.raw === raw
+        && aiAnalysisFailure.jd === jd && aiAnalysisFailure.role === role) {
+      host.innerHTML =
+        '<div class="rf-ai-err text-danger" style="font-size:0.8rem">' + escAttr(aiAnalysisFailure.msg) +
+        ' <button type="button" class="rf-fix-btn rf-ai-rerun" data-ai-rerun>Try again</button></div>';
+      statusEl.textContent = 'AI analysis failed: ' + aiAnalysisFailure.msg +
+        ' No result is shown — the local checks above are rule-based only.';
+      return;
+    }
+    host.innerHTML = '';
+    statusEl.textContent = 'No AI request yet for this resume.';
   }
 
   // ---- AI Match Insights (Match tab) ----
@@ -2564,6 +2611,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div class="score-hero-text">
           <h4 style="color:var(--text);font-family:'Sora';font-size:1.1rem;font-weight:700;margin-bottom:8px">Resume Health Score</h4>
+          <span class="match-local-tag">Local estimate — computed by this app's deterministic rules, not by AI.</span>
           <p id="resume-feedback" style="color:var(--muted);line-height:1.7;font-size:0.95rem;margin:0;max-width:400px">${feedback}</p>
           <div class="score-stats-row">
             <div class="score-stat">
@@ -2745,7 +2793,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="rf-ai rf-ai-openai">
         <div class="rf-ai-head">
           <h6>AI analysis${aiProviderTag() ? ' (' + aiProviderTag() + ')' : ''}</h6>
-          <span class="rf-ai-status text-muted" id="aiAnalyzeStatus" style="font-size:0.72rem">Requested automatically when you clicked Analyze Resume…</span>
+          <span class="rf-ai-status text-muted" id="aiAnalyzeStatus" style="font-size:0.72rem">No AI request yet for this resume.</span>
         </div>
         <p class="rf-ai-privacy text-muted" style="font-size:0.72rem">
           This sent <strong>your resume text</strong> (and the job description if present) to your
@@ -2756,6 +2804,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <div id="aiAnalyzeResults"></div>
       </div>
     `;
+
+    // Re-show the AI section's own state (cached / failed / not-yet-requested)
+    // after the rebuild above; stale or failed results are never re-shown as
+    // fresh, and no "request was made" claim survives a rebuild.
+    syncAiAnalysisSection();
 
     // Animate the score ring + count-up number after DOM render
     const resumeScoreEl = document.getElementById('resume-score');
